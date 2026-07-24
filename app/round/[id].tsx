@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { View, Text, TextInput, ScrollView, Pressable, ActivityIndicator, Alert, Modal } from 'react-native';
+import { View, Text, TextInput, ScrollView, Pressable, ActivityIndicator, Modal } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { useActiveRound } from '@/lib/hooks/useActiveRound';
 import { syncPendingRounds } from '@/lib/hooks/useRoundSync';
 import { addPendingRound } from '@/lib/offline/pendingRounds';
 import { calculateGir, calculateRoundDifferential, calculateCourseHandicap, strokesForHole } from '@/lib/calculations';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import type { HoleLogEntry } from '@/lib/offline/types';
 import type { FairwayHit } from '@/types/database';
 
@@ -23,6 +24,22 @@ export default function LiveRoundScreen() {
   const { activeRound, loading, updateActiveRound, discardActiveRound } = useActiveRound();
   const [finishing, setFinishing] = useState(false);
   const [missModalOpen, setMissModalOpen] = useState(false);
+  const [discardModalOpen, setDiscardModalOpen] = useState(false);
+
+  const discardDialog = (
+    <ConfirmDialog
+      visible={discardModalOpen}
+      title="Discard round?"
+      message="This cannot be undone."
+      confirmLabel="Discard"
+      onCancel={() => setDiscardModalOpen(false)}
+      onConfirm={async () => {
+        setDiscardModalOpen(false);
+        await discardActiveRound();
+        router.push('/rounds');
+      }}
+    />
+  );
 
   const scorecardHeaderButton = (
     <Stack.Screen
@@ -119,17 +136,7 @@ export default function LiveRoundScreen() {
   }
 
   function handleDiscard() {
-    Alert.alert('Discard round?', 'This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Discard',
-        style: 'destructive',
-        onPress: async () => {
-          await discardActiveRound();
-          router.push('/rounds');
-        },
-      },
-    ]);
+    setDiscardModalOpen(true);
   }
 
   if (isFinishPanel) {
@@ -164,6 +171,7 @@ export default function LiveRoundScreen() {
         <Pressable testID="discard-round-button" onPress={handleDiscard} className="mb-8 items-center py-3">
           <Text className="font-medium text-red-600">Discard Round</Text>
         </Pressable>
+        {discardDialog}
       </ScrollView>
     );
   }
@@ -366,6 +374,7 @@ export default function LiveRoundScreen() {
       <Pressable testID="discard-round-button" onPress={handleDiscard} className="mb-8 items-center py-3">
         <Text className="font-medium text-red-600">Discard Round</Text>
       </Pressable>
+      {discardDialog}
     </ScrollView>
   );
 }

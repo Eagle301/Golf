@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TextInput, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TextInput, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { HoleRow } from '@/components/course/HoleRow';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import {
   useCourse,
   saveCourse,
@@ -25,6 +26,7 @@ export default function CourseFormScreen() {
   const [holes, setHoles] = useState<HoleInput[]>(initialHoles);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   useEffect(() => {
     setName(course.name);
@@ -106,21 +108,17 @@ export default function CourseFormScreen() {
   }
 
   function handleDelete() {
-    Alert.alert('Delete course?', 'This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await deleteCourse(course.id!);
-            router.back();
-          } catch (err) {
-            setSaveError(err instanceof Error ? err.message : 'Failed to delete course.');
-          }
-        },
-      },
-    ]);
+    setDeleteModalOpen(true);
+  }
+
+  async function confirmDelete() {
+    setDeleteModalOpen(false);
+    try {
+      await deleteCourse(course.id!);
+      router.back();
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to delete course.');
+    }
   }
 
   if (loading) {
@@ -217,6 +215,15 @@ export default function CourseFormScreen() {
           <Text className="font-medium text-red-600">Delete Course</Text>
         </Pressable>
       )}
+
+      <ConfirmDialog
+        visible={deleteModalOpen}
+        title="Delete course?"
+        message="This cannot be undone."
+        confirmLabel="Delete"
+        onCancel={() => setDeleteModalOpen(false)}
+        onConfirm={confirmDelete}
+      />
     </ScrollView>
   );
 }
