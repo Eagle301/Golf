@@ -26,355 +26,356 @@ export default function LiveRoundScreen() {
   const [missModalOpen, setMissModalOpen] = useState(false);
   const [discardModalOpen, setDiscardModalOpen] = useState(false);
 
-  const discardDialog = (
-    <ConfirmDialog
-      visible={discardModalOpen}
-      title="Discard round?"
-      message="This cannot be undone."
-      confirmLabel="Discard"
-      onCancel={() => setDiscardModalOpen(false)}
-      onConfirm={async () => {
-        setDiscardModalOpen(false);
-        await discardActiveRound();
-        router.push('/rounds');
-      }}
-    />
-  );
-
-  const scorecardHeaderButton = (
-    <Stack.Screen
-      options={{
-        headerRight: () => (
-          <Pressable
-            testID="scorecard-button"
-            onPress={() => router.push({ pathname: '/round/scorecard', params: { id: 'active' } })}
-          >
-            <Text className="mr-2 font-medium text-green-700">Scorecard</Text>
-          </Pressable>
-        ),
-      }}
-    />
-  );
-
-  if (loading) {
-    return (
-      <View className="flex-1 items-center justify-center bg-white">
-        {scorecardHeaderButton}
-        <ActivityIndicator testID="round-loading" />
-      </View>
-    );
-  }
-
-  if (!activeRound) {
-    return (
-      <View className="flex-1 items-center justify-center bg-white px-6">
-        {scorecardHeaderButton}
-        <Text className="text-center text-gray-500">No round in progress.</Text>
-      </View>
-    );
-  }
-
-  const { currentHoleIndex, hole_count, holeLogs } = activeRound;
-  const isFinishPanel = currentHoleIndex >= hole_count;
-  const hole = !isFinishPanel ? holeLogs[currentHoleIndex] : null;
-
-  function updateHole(updated: HoleLogEntry) {
-    if (!activeRound) return;
-    const newHoleLogs = activeRound.holeLogs.map((h) =>
-      h.hole_number === updated.hole_number ? updated : h
-    );
-    updateActiveRound({ ...activeRound, holeLogs: newHoleLogs });
-  }
-
-  function goNext() {
-    if (!activeRound) return;
-    updateActiveRound({ ...activeRound, currentHoleIndex: activeRound.currentHoleIndex + 1 });
-  }
-
-  function goPrevious() {
-    if (!activeRound) return;
-    updateActiveRound({ ...activeRound, currentHoleIndex: activeRound.currentHoleIndex - 1 });
-  }
-
-  function updateNotes(notes: string) {
-    if (!activeRound) return;
-    updateActiveRound({ ...activeRound, notes });
-  }
-
-  async function handleFinish() {
-    if (!activeRound) return;
-    setFinishing(true);
-    const finalHoleLogs = activeRound.holeLogs.map((h) => ({
-      ...h,
-      gir:
-        !h.gir_overridden && h.score !== null && h.putts !== null
-          ? calculateGir(h.score, h.putts, h.par)
-          : h.gir,
-    }));
-    const totalScore = finalHoleLogs.reduce((sum, h) => sum + (h.score ?? 0), 0);
-    const totalPutts = finalHoleLogs.reduce((sum, h) => sum + (h.putts ?? 0), 0);
-    const scoreDifferential =
-      activeRound.course_rating != null && activeRound.slope_rating != null
-        ? calculateRoundDifferential(totalScore, activeRound.course_rating, activeRound.slope_rating)
-        : null;
-
-    await addPendingRound({
-      localId: activeRound.localId,
-      course_id: activeRound.course_id,
-      date_played: activeRound.date_played,
-      notes: activeRound.notes,
-      total_score: totalScore,
-      total_putts: totalPutts,
-      score_differential: scoreDifferential,
-      handicap_at_time: activeRound.handicap_at_start,
-      holeLogs: finalHoleLogs,
-    });
-    await discardActiveRound();
-    await syncPendingRounds();
-    setFinishing(false);
-    router.push('/rounds');
-  }
-
   function handleDiscard() {
     setDiscardModalOpen(true);
   }
 
-  if (isFinishPanel) {
-    return (
-      <ScrollView className="flex-1 bg-white px-4 pt-4" testID="finish-panel">
-        {scorecardHeaderButton}
-        <Text className="mb-2 text-xl font-semibold">Finish Round</Text>
-        <Text className="mb-1 text-sm font-medium text-gray-700">Notes</Text>
-        <TextInput
-          testID="round-notes-input"
-          className="mb-4 rounded border border-gray-300 px-3 py-2"
-          value={activeRound.notes}
-          onChangeText={updateNotes}
-          placeholder="How did it go?"
-          multiline
-        />
-        <Pressable
-          testID="previous-hole-button"
-          onPress={goPrevious}
-          className="mb-3 items-center rounded border border-gray-300 py-3"
-        >
-          <Text className="font-medium text-gray-700">Back to Hole {hole_count}</Text>
-        </Pressable>
-        <Pressable
-          testID="finish-round-button"
-          disabled={finishing}
-          onPress={handleFinish}
-          className="mb-3 items-center rounded bg-green-600 py-3"
-        >
-          <Text className="font-medium text-white">{finishing ? 'Finishing...' : 'Finish Round'}</Text>
-        </Pressable>
-        <Pressable testID="discard-round-button" onPress={handleDiscard} className="mb-8 items-center py-3">
-          <Text className="font-medium text-red-600">Discard Round</Text>
-        </Pressable>
-        {discardDialog}
-      </ScrollView>
+  async function confirmDiscard() {
+    setDiscardModalOpen(false);
+    await discardActiveRound();
+    // replace, not push: this round is gone, so it shouldn't be possible to
+    // navigate "back" into it - and repeated push here was piling up
+    // duplicate (tabs) entries in the stack every round, which is what made
+    // the header back button eventually stop responding.
+    router.replace('/rounds');
+  }
+
+  let body: React.ReactNode;
+
+  if (loading) {
+    body = (
+      <View className="flex-1 items-center justify-center bg-white">
+        <ActivityIndicator testID="round-loading" />
+      </View>
     );
-  }
-
-  if (!hole) return null;
-
-  const canAdvance = hole.score !== null && hole.putts !== null;
-  const gir =
-    !hole.gir_overridden && hole.score !== null && hole.putts !== null
-      ? calculateGir(hole.score, hole.putts, hole.par)
-      : hole.gir;
-  const fairwayIsNo = hole.fairway_hit != null && hole.fairway_hit !== 'yes';
-
-  const courseHandicap =
-    activeRound.handicap_at_start != null &&
-    activeRound.course_rating != null &&
-    activeRound.slope_rating != null &&
-    activeRound.total_par != null
-      ? calculateCourseHandicap(
-          activeRound.handicap_at_start,
-          activeRound.slope_rating,
-          activeRound.course_rating,
-          activeRound.total_par
-        )
-      : null;
-  const extraStrokes =
-    courseHandicap != null && hole.stroke_index != null ? strokesForHole(courseHandicap, hole.stroke_index) : 0;
-  const adjustedPar = hole.par + extraStrokes;
-
-  function selectMiss(value: FairwayHit) {
-    if (!hole) return;
-    updateHole({ ...hole, fairway_hit: value });
-    setMissModalOpen(false);
-  }
-
-  return (
-    <ScrollView className="flex-1 bg-white px-4 pt-4" testID="hole-view">
-      {scorecardHeaderButton}
-      <Text className="text-xl font-semibold">
-        Hole {hole.hole_number} · Par {hole.par}
-        {extraStrokes > 0 ? ` (${adjustedPar})` : ''}
-      </Text>
-
-      <Text className="mb-1 mt-4 text-sm font-medium text-gray-700">Score</Text>
-      <View className="mb-3 flex-row flex-wrap">
-        {SCORE_OPTIONS.map((n) => (
-          <Pressable
-            key={n}
-            testID={`score-${n}`}
-            onPress={() => updateHole({ ...hole, score: n })}
-            className={`mb-2 mr-2 h-10 w-10 items-center justify-center rounded-full ${
-              hole.score === n ? 'bg-green-600' : 'bg-gray-200'
-            }`}
-          >
-            <Text className={hole.score === n ? 'text-white' : 'text-gray-700'}>{n}</Text>
-          </Pressable>
-        ))}
+  } else if (!activeRound) {
+    body = (
+      <View className="flex-1 items-center justify-center bg-white px-6">
+        <Text className="text-center text-gray-500">No round in progress.</Text>
       </View>
+    );
+  } else {
+    const { currentHoleIndex, hole_count, holeLogs } = activeRound;
+    const isFinishPanel = currentHoleIndex >= hole_count;
+    const hole = !isFinishPanel ? holeLogs[currentHoleIndex] : null;
 
-      <Text className="mb-1 text-sm font-medium text-gray-700">Putts</Text>
-      <View className="mb-3 flex-row flex-wrap">
-        {PUTTS_OPTIONS.map((n) => (
+    function updateHole(updated: HoleLogEntry) {
+      if (!activeRound) return;
+      const newHoleLogs = activeRound.holeLogs.map((h) =>
+        h.hole_number === updated.hole_number ? updated : h
+      );
+      updateActiveRound({ ...activeRound, holeLogs: newHoleLogs });
+    }
+
+    function goNext() {
+      if (!activeRound) return;
+      updateActiveRound({ ...activeRound, currentHoleIndex: activeRound.currentHoleIndex + 1 });
+    }
+
+    function goPrevious() {
+      if (!activeRound) return;
+      updateActiveRound({ ...activeRound, currentHoleIndex: activeRound.currentHoleIndex - 1 });
+    }
+
+    function updateNotes(notes: string) {
+      if (!activeRound) return;
+      updateActiveRound({ ...activeRound, notes });
+    }
+
+    async function handleFinish() {
+      if (!activeRound) return;
+      setFinishing(true);
+      const finalHoleLogs = activeRound.holeLogs.map((h) => ({
+        ...h,
+        gir:
+          !h.gir_overridden && h.score !== null && h.putts !== null
+            ? calculateGir(h.score, h.putts, h.par)
+            : h.gir,
+      }));
+      const totalScore = finalHoleLogs.reduce((sum, h) => sum + (h.score ?? 0), 0);
+      const totalPutts = finalHoleLogs.reduce((sum, h) => sum + (h.putts ?? 0), 0);
+      const scoreDifferential =
+        activeRound.course_rating != null && activeRound.slope_rating != null
+          ? calculateRoundDifferential(totalScore, activeRound.course_rating, activeRound.slope_rating)
+          : null;
+
+      await addPendingRound({
+        localId: activeRound.localId,
+        course_id: activeRound.course_id,
+        date_played: activeRound.date_played,
+        notes: activeRound.notes,
+        total_score: totalScore,
+        total_putts: totalPutts,
+        score_differential: scoreDifferential,
+        handicap_at_time: activeRound.handicap_at_start,
+        holeLogs: finalHoleLogs,
+      });
+      await discardActiveRound();
+      await syncPendingRounds();
+      setFinishing(false);
+      // replace, not push - see the comment in confirmDiscard above.
+      router.replace('/rounds');
+    }
+
+    if (isFinishPanel) {
+      body = (
+        <ScrollView className="flex-1 bg-white px-4 pt-4" testID="finish-panel">
+          <Text className="mb-2 text-xl font-semibold">Finish Round</Text>
+          <Text className="mb-1 text-sm font-medium text-gray-700">Notes</Text>
+          <TextInput
+            testID="round-notes-input"
+            className="mb-4 rounded border border-gray-300 px-3 py-2"
+            value={activeRound.notes}
+            onChangeText={updateNotes}
+            placeholder="How did it go?"
+            multiline
+          />
           <Pressable
-            key={n}
-            testID={`putts-${n}`}
-            onPress={() => updateHole({ ...hole, putts: n })}
-            className={`mb-2 mr-2 h-10 w-10 items-center justify-center rounded-full ${
-              hole.putts === n ? 'bg-green-600' : 'bg-gray-200'
-            }`}
+            testID="previous-hole-button"
+            onPress={goPrevious}
+            className="mb-3 items-center rounded border border-gray-300 py-3"
           >
-            <Text className={hole.putts === n ? 'text-white' : 'text-gray-700'}>
-              {n === 4 ? '4+' : n}
-            </Text>
+            <Text className="font-medium text-gray-700">Back to Hole {hole_count}</Text>
           </Pressable>
-        ))}
-      </View>
+          <Pressable
+            testID="finish-round-button"
+            disabled={finishing}
+            onPress={handleFinish}
+            className="mb-3 items-center rounded bg-green-600 py-3"
+          >
+            <Text className="font-medium text-white">{finishing ? 'Finishing...' : 'Finish Round'}</Text>
+          </Pressable>
+          <Pressable testID="discard-round-button" onPress={handleDiscard} className="mb-8 items-center py-3">
+            <Text className="font-medium text-red-600">Discard Round</Text>
+          </Pressable>
+        </ScrollView>
+      );
+    } else if (hole) {
+      const canAdvance = hole.score !== null && hole.putts !== null;
+      const gir =
+        !hole.gir_overridden && hole.score !== null && hole.putts !== null
+          ? calculateGir(hole.score, hole.putts, hole.par)
+          : hole.gir;
+      const fairwayIsNo = hole.fairway_hit != null && hole.fairway_hit !== 'yes';
 
-      <Text className="mb-1 text-sm font-medium text-gray-700">Fairway</Text>
-      <View className="mb-3 flex-row">
-        <Pressable
-          testID="fairway-yes"
-          onPress={() => updateHole({ ...hole, fairway_hit: 'yes' })}
-          className={`mr-2 rounded px-4 py-2 ${
-            hole.fairway_hit === 'yes' ? 'bg-green-600' : 'bg-gray-200'
-          }`}
-        >
-          <Text className={hole.fairway_hit === 'yes' ? 'text-white' : 'text-gray-700'}>Yes</Text>
-        </Pressable>
-        <Pressable
-          testID="fairway-no"
-          onPress={() => setMissModalOpen(true)}
-          className={`rounded px-4 py-2 ${fairwayIsNo ? 'bg-green-600' : 'bg-gray-200'}`}
-        >
-          <Text className={fairwayIsNo ? 'text-white' : 'text-gray-700'}>
-            {fairwayIsNo
-              ? `No (${MISS_OPTIONS.find((o) => o.value === hole.fairway_hit)?.label})`
-              : 'No'}
+      const courseHandicap =
+        activeRound.handicap_at_start != null &&
+        activeRound.course_rating != null &&
+        activeRound.slope_rating != null &&
+        activeRound.total_par != null
+          ? calculateCourseHandicap(
+              activeRound.handicap_at_start,
+              activeRound.slope_rating,
+              activeRound.course_rating,
+              activeRound.total_par
+            )
+          : null;
+      const extraStrokes =
+        courseHandicap != null && hole.stroke_index != null
+          ? strokesForHole(courseHandicap, hole.stroke_index)
+          : 0;
+      const adjustedPar = hole.par + extraStrokes;
+
+      function selectMiss(value: FairwayHit) {
+        if (!hole) return;
+        updateHole({ ...hole, fairway_hit: value });
+        setMissModalOpen(false);
+      }
+
+      body = (
+        <ScrollView className="flex-1 bg-white px-4 pt-4" testID="hole-view">
+          <Text className="text-xl font-semibold">
+            Hole {hole.hole_number} · Par {hole.par}
+            {extraStrokes > 0 ? ` (${adjustedPar})` : ''}
           </Text>
-        </Pressable>
-      </View>
 
-      <Modal
-        visible={missModalOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setMissModalOpen(false)}
-      >
-        <Pressable
-          testID="miss-modal-backdrop"
-          className="flex-1 items-center justify-center bg-black/50"
-          onPress={() => setMissModalOpen(false)}
-        >
-          <View className="w-64 rounded bg-white p-4">
-            <Text className="mb-3 text-center text-base font-medium">Missed which way?</Text>
-            {MISS_OPTIONS.map((opt) => (
+          <Text className="mb-1 mt-4 text-sm font-medium text-gray-700">Score</Text>
+          <View className="mb-3 flex-row flex-wrap">
+            {SCORE_OPTIONS.map((n) => (
               <Pressable
-                key={opt.value}
-                testID={`miss-${opt.value}`}
-                onPress={() => selectMiss(opt.value)}
-                className="mb-2 items-center rounded bg-gray-200 py-3"
+                key={n}
+                testID={`score-${n}`}
+                onPress={() => updateHole({ ...hole, score: n })}
+                className={`mb-2 mr-2 h-10 w-10 items-center justify-center rounded-full ${
+                  hole.score === n ? 'bg-green-600' : 'bg-gray-200'
+                }`}
               >
-                <Text className="text-gray-700">{opt.label}</Text>
+                <Text className={hole.score === n ? 'text-white' : 'text-gray-700'}>{n}</Text>
               </Pressable>
             ))}
           </View>
-        </Pressable>
-      </Modal>
 
-      <Pressable
-        testID="gir-toggle"
-        onPress={() => updateHole({ ...hole, gir: !gir, gir_overridden: true })}
-        className={`mb-3 items-center rounded py-3 ${gir ? 'bg-green-600' : 'bg-gray-200'}`}
-      >
-        <Text className={gir ? 'text-white' : 'text-gray-700'}>GIR: {gir ? 'Yes' : 'No'}</Text>
-      </Pressable>
+          <Text className="mb-1 text-sm font-medium text-gray-700">Putts</Text>
+          <View className="mb-3 flex-row flex-wrap">
+            {PUTTS_OPTIONS.map((n) => (
+              <Pressable
+                key={n}
+                testID={`putts-${n}`}
+                onPress={() => updateHole({ ...hole, putts: n })}
+                className={`mb-2 mr-2 h-10 w-10 items-center justify-center rounded-full ${
+                  hole.putts === n ? 'bg-green-600' : 'bg-gray-200'
+                }`}
+              >
+                <Text className={hole.putts === n ? 'text-white' : 'text-gray-700'}>
+                  {n === 4 ? '4+' : n}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
 
-      <View className="mb-3 flex-row items-center justify-between">
-        <Text className="text-sm font-medium text-gray-700">Penalties</Text>
-        <View className="flex-row items-center">
-          <Pressable
-            testID="penalties-minus"
-            onPress={() => updateHole({ ...hole, penalties: Math.max(0, hole.penalties - 1) })}
-            className="h-8 w-8 items-center justify-center rounded bg-gray-200"
+          <Text className="mb-1 text-sm font-medium text-gray-700">Fairway</Text>
+          <View className="mb-3 flex-row">
+            <Pressable
+              testID="fairway-yes"
+              onPress={() => updateHole({ ...hole, fairway_hit: 'yes' })}
+              className={`mr-2 rounded px-4 py-2 ${
+                hole.fairway_hit === 'yes' ? 'bg-green-600' : 'bg-gray-200'
+              }`}
+            >
+              <Text className={hole.fairway_hit === 'yes' ? 'text-white' : 'text-gray-700'}>Yes</Text>
+            </Pressable>
+            <Pressable
+              testID="fairway-no"
+              onPress={() => setMissModalOpen(true)}
+              className={`rounded px-4 py-2 ${fairwayIsNo ? 'bg-green-600' : 'bg-gray-200'}`}
+            >
+              <Text className={fairwayIsNo ? 'text-white' : 'text-gray-700'}>
+                {fairwayIsNo
+                  ? `No (${MISS_OPTIONS.find((o) => o.value === hole.fairway_hit)?.label})`
+                  : 'No'}
+              </Text>
+            </Pressable>
+          </View>
+
+          <Modal
+            visible={missModalOpen}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setMissModalOpen(false)}
           >
-            <Text>-</Text>
-          </Pressable>
-          <Text className="mx-3">{hole.penalties}</Text>
-          <Pressable
-            testID="penalties-plus"
-            onPress={() => updateHole({ ...hole, penalties: hole.penalties + 1 })}
-            className="h-8 w-8 items-center justify-center rounded bg-gray-200"
-          >
-            <Text>+</Text>
-          </Pressable>
-        </View>
-      </View>
+            <Pressable
+              testID="miss-modal-backdrop"
+              className="flex-1 items-center justify-center bg-black/50"
+              onPress={() => setMissModalOpen(false)}
+            >
+              <View className="w-64 rounded bg-white p-4">
+                <Text className="mb-3 text-center text-base font-medium">Missed which way?</Text>
+                {MISS_OPTIONS.map((opt) => (
+                  <Pressable
+                    key={opt.value}
+                    testID={`miss-${opt.value}`}
+                    onPress={() => selectMiss(opt.value)}
+                    className="mb-2 items-center rounded bg-gray-200 py-3"
+                  >
+                    <Text className="text-gray-700">{opt.label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </Pressable>
+          </Modal>
 
-      <View className="mb-4 flex-row items-center justify-between">
-        <Text className="text-sm font-medium text-gray-700">Chip Shots</Text>
-        <View className="flex-row items-center">
           <Pressable
-            testID="chip-shots-minus"
-            onPress={() => updateHole({ ...hole, chip_shots: Math.max(0, hole.chip_shots - 1) })}
-            className="h-8 w-8 items-center justify-center rounded bg-gray-200"
+            testID="gir-toggle"
+            onPress={() => updateHole({ ...hole, gir: !gir, gir_overridden: true })}
+            className={`mb-3 items-center rounded py-3 ${gir ? 'bg-green-600' : 'bg-gray-200'}`}
           >
-            <Text>-</Text>
+            <Text className={gir ? 'text-white' : 'text-gray-700'}>GIR: {gir ? 'Yes' : 'No'}</Text>
           </Pressable>
-          <Text className="mx-3">{hole.chip_shots}</Text>
-          <Pressable
-            testID="chip-shots-plus"
-            onPress={() => updateHole({ ...hole, chip_shots: hole.chip_shots + 1 })}
-            className="h-8 w-8 items-center justify-center rounded bg-gray-200"
-          >
-            <Text>+</Text>
+
+          <View className="mb-3 flex-row items-center justify-between">
+            <Text className="text-sm font-medium text-gray-700">Penalties</Text>
+            <View className="flex-row items-center">
+              <Pressable
+                testID="penalties-minus"
+                onPress={() => updateHole({ ...hole, penalties: Math.max(0, hole.penalties - 1) })}
+                className="h-8 w-8 items-center justify-center rounded bg-gray-200"
+              >
+                <Text>-</Text>
+              </Pressable>
+              <Text className="mx-3">{hole.penalties}</Text>
+              <Pressable
+                testID="penalties-plus"
+                onPress={() => updateHole({ ...hole, penalties: hole.penalties + 1 })}
+                className="h-8 w-8 items-center justify-center rounded bg-gray-200"
+              >
+                <Text>+</Text>
+              </Pressable>
+            </View>
+          </View>
+
+          <View className="mb-4 flex-row items-center justify-between">
+            <Text className="text-sm font-medium text-gray-700">Chip Shots</Text>
+            <View className="flex-row items-center">
+              <Pressable
+                testID="chip-shots-minus"
+                onPress={() => updateHole({ ...hole, chip_shots: Math.max(0, hole.chip_shots - 1) })}
+                className="h-8 w-8 items-center justify-center rounded bg-gray-200"
+              >
+                <Text>-</Text>
+              </Pressable>
+              <Text className="mx-3">{hole.chip_shots}</Text>
+              <Pressable
+                testID="chip-shots-plus"
+                onPress={() => updateHole({ ...hole, chip_shots: hole.chip_shots + 1 })}
+                className="h-8 w-8 items-center justify-center rounded bg-gray-200"
+              >
+                <Text>+</Text>
+              </Pressable>
+            </View>
+          </View>
+
+          <View className="mb-8 flex-row justify-between">
+            <Pressable
+              testID="previous-hole-button"
+              disabled={currentHoleIndex === 0}
+              onPress={goPrevious}
+              className={`flex-1 mr-2 items-center rounded py-3 ${
+                currentHoleIndex === 0 ? 'bg-gray-200' : 'bg-gray-300'
+              }`}
+            >
+              <Text className="font-medium text-gray-700">Previous</Text>
+            </Pressable>
+            <Pressable
+              testID="next-hole-button"
+              disabled={!canAdvance}
+              onPress={goNext}
+              className={`flex-1 ml-2 items-center rounded py-3 ${canAdvance ? 'bg-green-600' : 'bg-gray-300'}`}
+            >
+              <Text className="font-medium text-white">Next</Text>
+            </Pressable>
+          </View>
+
+          <Pressable testID="discard-round-button" onPress={handleDiscard} className="mb-8 items-center py-3">
+            <Text className="font-medium text-red-600">Discard Round</Text>
           </Pressable>
-        </View>
-      </View>
+        </ScrollView>
+      );
+    }
+  }
 
-      <View className="mb-8 flex-row justify-between">
-        <Pressable
-          testID="previous-hole-button"
-          disabled={currentHoleIndex === 0}
-          onPress={goPrevious}
-          className={`flex-1 mr-2 items-center rounded py-3 ${
-            currentHoleIndex === 0 ? 'bg-gray-200' : 'bg-gray-300'
-          }`}
-        >
-          <Text className="font-medium text-gray-700">Previous</Text>
-        </Pressable>
-        <Pressable
-          testID="next-hole-button"
-          disabled={!canAdvance}
-          onPress={goNext}
-          className={`flex-1 ml-2 items-center rounded py-3 ${canAdvance ? 'bg-green-600' : 'bg-gray-300'}`}
-        >
-          <Text className="font-medium text-white">Next</Text>
-        </Pressable>
-      </View>
-
-      <Pressable testID="discard-round-button" onPress={handleDiscard} className="mb-8 items-center py-3">
-        <Text className="font-medium text-red-600">Discard Round</Text>
-      </Pressable>
-      {discardDialog}
-    </ScrollView>
+  return (
+    <>
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <Pressable
+              testID="scorecard-button"
+              onPress={() => router.push({ pathname: '/round/scorecard', params: { id: 'active' } })}
+            >
+              <Text className="mr-2 font-medium text-green-700">Scorecard</Text>
+            </Pressable>
+          ),
+        }}
+      />
+      {body}
+      <ConfirmDialog
+        visible={discardModalOpen}
+        title="Discard round?"
+        message="This cannot be undone."
+        confirmLabel="Discard"
+        onCancel={() => setDiscardModalOpen(false)}
+        onConfirm={confirmDiscard}
+      />
+    </>
   );
 }
