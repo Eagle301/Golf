@@ -2,9 +2,11 @@ import '../global.css';
 import { Stack } from 'expo-router';
 import { View, Text, ActivityIndicator } from 'react-native';
 import { useDevAutoSignIn } from '@/lib/hooks/useDevAutoSignIn';
+import { useRoundSync } from '@/lib/hooks/useRoundSync';
 
 export default function RootLayout() {
   const { ready, error } = useDevAutoSignIn();
+  useRoundSync();
 
   if (!ready) {
     return (

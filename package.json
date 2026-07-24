@@ -4,6 +4,7 @@
   "main": "expo-router/entry",
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-community/netinfo": "11.4.1",
     "@supabase/supabase-js": "^2.110.8",
     "expo": "54",
     "expo-constants": "~18.0.13",
@@ -42,6 +43,7 @@
   "private": true,
   "jest": {
     "preset": "jest-expo",
+    "setupFiles": ["<rootDir>/jest.setup.js"],
     "moduleNameMapper": {
       "^@/(.*)$": "<rootDir>/$1",
       "\\.css$": "<rootDir>/lib/testUtils/styleMock.js"

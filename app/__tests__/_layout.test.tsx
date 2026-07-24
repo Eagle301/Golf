@@ -1,4 +1,5 @@
 jest.mock('@/lib/hooks/useDevAutoSignIn', () => ({ useDevAutoSignIn: jest.fn() }));
+jest.mock('@/lib/hooks/useRoundSync', () => ({ useRoundSync: jest.fn() }));
 
 import { render, screen } from '@testing-library/react-native';
 import { useDevAutoSignIn } from '@/lib/hooks/useDevAutoSignIn';
