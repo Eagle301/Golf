@@ -17,6 +17,7 @@ export interface Course {
   id: string;
   user_id: string;
   name: string;
+  hole_count: 9 | 18;
   total_par: number | null;
   total_length_meters: number | null;
   created_at: string;

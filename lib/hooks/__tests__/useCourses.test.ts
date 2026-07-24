@@ -56,7 +56,10 @@ describe('useCourse', () => {
   });
 
   it('loads an existing course and merges holes by hole_number', async () => {
-    const courseBuilder = createQueryBuilderMock({ data: { id: 'abc', name: 'Pebble' }, error: null });
+    const courseBuilder = createQueryBuilderMock({
+      data: { id: 'abc', name: 'Pebble', hole_count: 18 },
+      error: null,
+    });
     const holesBuilder = createQueryBuilderMock({
       data: [{ hole_number: 1, par: 4, length_meters: 380 }],
       error: null,
@@ -69,7 +72,7 @@ describe('useCourse', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    expect(result.current.course).toEqual({ id: 'abc', name: 'Pebble' });
+    expect(result.current.course).toEqual({ id: 'abc', name: 'Pebble', hole_count: 18 });
     expect(result.current.holes).toHaveLength(18);
     expect(result.current.holes[0]).toEqual({ hole_number: 1, par: 4, length_meters: 380 });
     expect(result.current.holes[1]).toEqual({ hole_number: 2, par: null, length_meters: null });
@@ -84,13 +87,15 @@ describe('saveCourse', () => {
   }));
 
   it('throws CourseValidationError when name is empty', async () => {
-    await expect(saveCourse({ name: '', holes: validHoles })).rejects.toThrow(CourseValidationError);
+    await expect(saveCourse({ name: '', hole_count: 18, holes: validHoles })).rejects.toThrow(
+      CourseValidationError
+    );
   });
 
   it('throws CourseValidationError when a hole is missing par', async () => {
     const holes = [...validHoles];
     holes[0] = { ...holes[0], par: null };
-    await expect(saveCourse({ name: 'Test', holes })).rejects.toThrow(CourseValidationError);
+    await expect(saveCourse({ name: 'Test', hole_count: 18, holes })).rejects.toThrow(CourseValidationError);
   });
 
   it('inserts a new course and upserts holes, returning the new id', async () => {
@@ -101,7 +106,7 @@ describe('saveCourse', () => {
       table === 'courses' ? insertBuilder : upsertBuilder
     );
 
-    const id = await saveCourse({ name: 'New Course', holes: validHoles });
+    const id = await saveCourse({ name: 'New Course', hole_count: 18, holes: validHoles });
 
     expect(id).toBe('new-course-id');
     expect(insertBuilder.insert).toHaveBeenCalledWith(
@@ -125,7 +130,7 @@ describe('saveCourse', () => {
       table === 'courses' ? updateBuilder : upsertBuilder
     );
 
-    const id = await saveCourse({ id: 'existing-id', name: 'Updated', holes: validHoles });
+    const id = await saveCourse({ id: 'existing-id', name: 'Updated', hole_count: 18, holes: validHoles });
 
     expect(id).toBe('existing-id');
     expect(updateBuilder.update).toHaveBeenCalledWith(expect.objectContaining({ name: 'Updated' }));

@@ -38,7 +38,7 @@ describe('CourseFormScreen', () => {
   it('disables Save until all holes are filled in', () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ id: 'new' });
     (useCoursesModule.useCourse as jest.Mock).mockReturnValue({
-      course: { id: null, name: '' },
+      course: { id: null, name: '', hole_count: 18 },
       holes: blankHoles,
       loading: false,
       error: null,
@@ -52,7 +52,7 @@ describe('CourseFormScreen', () => {
   it('saves a new course and navigates back', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ id: 'new' });
     (useCoursesModule.useCourse as jest.Mock).mockReturnValue({
-      course: { id: null, name: '' },
+      course: { id: null, name: '', hole_count: 18 },
       holes: validHoles,
       loading: false,
       error: null,
@@ -72,7 +72,7 @@ describe('CourseFormScreen', () => {
   it('shows the delete button only when editing an existing course', () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ id: 'abc' });
     (useCoursesModule.useCourse as jest.Mock).mockReturnValue({
-      course: { id: 'abc', name: 'Existing' },
+      course: { id: 'abc', name: 'Existing', hole_count: 18 },
       holes: validHoles,
       loading: false,
       error: null,
@@ -85,7 +85,7 @@ describe('CourseFormScreen', () => {
   it('does not show the delete button for a new course', () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ id: 'new' });
     (useCoursesModule.useCourse as jest.Mock).mockReturnValue({
-      course: { id: null, name: '' },
+      course: { id: null, name: '', hole_count: 18 },
       holes: blankHoles,
       loading: false,
       error: null,

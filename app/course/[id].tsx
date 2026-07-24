@@ -8,7 +8,10 @@ import {
   deleteCourse,
   CourseValidationError,
   type HoleInput,
+  type HoleCount,
 } from '@/lib/hooks/useCourses';
+
+const HOLE_COUNT_OPTIONS: HoleCount[] = [9, 18];
 
 export default function CourseFormScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -16,13 +19,15 @@ export default function CourseFormScreen() {
   const { course, holes: initialHoles, loading, error: loadError } = useCourse(id);
 
   const [name, setName] = useState('');
+  const [holeCount, setHoleCount] = useState<HoleCount>(18);
   const [holes, setHoles] = useState<HoleInput[]>(initialHoles);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     setName(course.name);
-  }, [course.name]);
+    setHoleCount(course.hole_count);
+  }, [course.name, course.hole_count]);
 
   useEffect(() => {
     setHoles(initialHoles);
@@ -39,11 +44,26 @@ export default function CourseFormScreen() {
     setHoles((prev) => prev.map((h) => (h.hole_number === updated.hole_number ? updated : h)));
   }
 
+  function changeHoleCount(count: HoleCount) {
+    setHoleCount(count);
+    setHoles((prev) => {
+      if (count < prev.length) {
+        return prev.slice(0, count);
+      }
+      const extra = Array.from({ length: count - prev.length }, (_, i) => ({
+        hole_number: prev.length + i + 1,
+        par: null,
+        length_meters: null,
+      }));
+      return [...prev, ...extra];
+    });
+  }
+
   async function handleSave() {
     setSaveError(null);
     setSaving(true);
     try {
-      await saveCourse({ id: course.id ?? undefined, name, holes });
+      await saveCourse({ id: course.id ?? undefined, name, hole_count: holeCount, holes });
       router.back();
     } catch (err) {
       if (err instanceof CourseValidationError) {
@@ -100,6 +120,20 @@ export default function CourseFormScreen() {
         onChangeText={setName}
         placeholder="e.g. Pebble Beach"
       />
+
+      <Text className="mb-1 text-sm font-medium text-gray-700">Holes</Text>
+      <View className="mb-4 flex-row">
+        {HOLE_COUNT_OPTIONS.map((count) => (
+          <Pressable
+            key={count}
+            testID={`hole-count-${count}`}
+            onPress={() => changeHoleCount(count)}
+            className={`mr-2 rounded px-4 py-2 ${holeCount === count ? 'bg-green-600' : 'bg-gray-200'}`}
+          >
+            <Text className={holeCount === count ? 'text-white' : 'text-gray-700'}>{count}</Text>
+          </Pressable>
+        ))}
+      </View>
 
       {holes.map((hole) => (
         <HoleRow key={hole.hole_number} hole={hole} onChange={updateHole} />
