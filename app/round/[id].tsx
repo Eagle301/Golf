@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TextInput, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TextInput, ScrollView, Pressable, ActivityIndicator, Alert, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useActiveRound } from '@/lib/hooks/useActiveRound';
 import { syncPendingRounds } from '@/lib/hooks/useRoundSync';
@@ -8,8 +8,10 @@ import { calculateGir } from '@/lib/calculations';
 import type { HoleLogEntry } from '@/lib/offline/types';
 import type { FairwayHit } from '@/types/database';
 
-const FAIRWAY_OPTIONS: { value: FairwayHit; label: string }[] = [
-  { value: 'yes', label: 'Hit' },
+const SCORE_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+const PUTTS_OPTIONS = [0, 1, 2, 3, 4];
+
+const MISS_OPTIONS: { value: FairwayHit; label: string }[] = [
   { value: 'missed_left', label: 'Left' },
   { value: 'missed_right', label: 'Right' },
   { value: 'missed_short', label: 'Short' },
@@ -20,6 +22,7 @@ export default function LiveRoundScreen() {
   const router = useRouter();
   const { activeRound, loading, updateActiveRound, discardActiveRound } = useActiveRound();
   const [finishing, setFinishing] = useState(false);
+  const [missModalOpen, setMissModalOpen] = useState(false);
 
   if (loading) {
     return (
@@ -150,6 +153,13 @@ export default function LiveRoundScreen() {
     !hole.gir_overridden && hole.score !== null && hole.putts !== null
       ? calculateGir(hole.score, hole.putts, hole.par)
       : hole.gir;
+  const fairwayIsNo = hole.fairway_hit != null && hole.fairway_hit !== 'yes';
+
+  function selectMiss(value: FairwayHit) {
+    if (!hole) return;
+    updateHole({ ...hole, fairway_hit: value });
+    setMissModalOpen(false);
+  }
 
   return (
     <ScrollView className="flex-1 bg-white px-4 pt-4" testID="hole-view">
@@ -158,40 +168,89 @@ export default function LiveRoundScreen() {
       </Text>
 
       <Text className="mb-1 mt-4 text-sm font-medium text-gray-700">Score</Text>
-      <TextInput
-        testID="hole-score-input"
-        className="mb-3 rounded border border-gray-300 px-3 py-2"
-        keyboardType="number-pad"
-        value={hole.score != null ? String(hole.score) : ''}
-        onChangeText={(text) => updateHole({ ...hole, score: text === '' ? null : parseInt(text, 10) })}
-      />
-
-      <Text className="mb-1 text-sm font-medium text-gray-700">Putts</Text>
-      <TextInput
-        testID="hole-putts-input"
-        className="mb-3 rounded border border-gray-300 px-3 py-2"
-        keyboardType="number-pad"
-        value={hole.putts != null ? String(hole.putts) : ''}
-        onChangeText={(text) => updateHole({ ...hole, putts: text === '' ? null : parseInt(text, 10) })}
-      />
-
-      <Text className="mb-1 text-sm font-medium text-gray-700">Fairway</Text>
       <View className="mb-3 flex-row flex-wrap">
-        {FAIRWAY_OPTIONS.map((opt) => (
+        {SCORE_OPTIONS.map((n) => (
           <Pressable
-            key={opt.value}
-            testID={`fairway-${opt.value}`}
-            onPress={() => updateHole({ ...hole, fairway_hit: opt.value })}
-            className={`mb-2 mr-2 rounded px-3 py-2 ${
-              hole.fairway_hit === opt.value ? 'bg-green-600' : 'bg-gray-200'
+            key={n}
+            testID={`score-${n}`}
+            onPress={() => updateHole({ ...hole, score: n })}
+            className={`mb-2 mr-2 h-10 w-10 items-center justify-center rounded-full ${
+              hole.score === n ? 'bg-green-600' : 'bg-gray-200'
             }`}
           >
-            <Text className={hole.fairway_hit === opt.value ? 'text-white' : 'text-gray-700'}>
-              {opt.label}
+            <Text className={hole.score === n ? 'text-white' : 'text-gray-700'}>{n}</Text>
+          </Pressable>
+        ))}
+      </View>
+
+      <Text className="mb-1 text-sm font-medium text-gray-700">Putts</Text>
+      <View className="mb-3 flex-row flex-wrap">
+        {PUTTS_OPTIONS.map((n) => (
+          <Pressable
+            key={n}
+            testID={`putts-${n}`}
+            onPress={() => updateHole({ ...hole, putts: n })}
+            className={`mb-2 mr-2 h-10 w-10 items-center justify-center rounded-full ${
+              hole.putts === n ? 'bg-green-600' : 'bg-gray-200'
+            }`}
+          >
+            <Text className={hole.putts === n ? 'text-white' : 'text-gray-700'}>
+              {n === 4 ? '4+' : n}
             </Text>
           </Pressable>
         ))}
       </View>
+
+      <Text className="mb-1 text-sm font-medium text-gray-700">Fairway</Text>
+      <View className="mb-3 flex-row">
+        <Pressable
+          testID="fairway-yes"
+          onPress={() => updateHole({ ...hole, fairway_hit: 'yes' })}
+          className={`mr-2 rounded px-4 py-2 ${
+            hole.fairway_hit === 'yes' ? 'bg-green-600' : 'bg-gray-200'
+          }`}
+        >
+          <Text className={hole.fairway_hit === 'yes' ? 'text-white' : 'text-gray-700'}>Yes</Text>
+        </Pressable>
+        <Pressable
+          testID="fairway-no"
+          onPress={() => setMissModalOpen(true)}
+          className={`rounded px-4 py-2 ${fairwayIsNo ? 'bg-green-600' : 'bg-gray-200'}`}
+        >
+          <Text className={fairwayIsNo ? 'text-white' : 'text-gray-700'}>
+            {fairwayIsNo
+              ? `No (${MISS_OPTIONS.find((o) => o.value === hole.fairway_hit)?.label})`
+              : 'No'}
+          </Text>
+        </Pressable>
+      </View>
+
+      <Modal
+        visible={missModalOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMissModalOpen(false)}
+      >
+        <Pressable
+          testID="miss-modal-backdrop"
+          className="flex-1 items-center justify-center bg-black/50"
+          onPress={() => setMissModalOpen(false)}
+        >
+          <View className="w-64 rounded bg-white p-4">
+            <Text className="mb-3 text-center text-base font-medium">Missed which way?</Text>
+            {MISS_OPTIONS.map((opt) => (
+              <Pressable
+                key={opt.value}
+                testID={`miss-${opt.value}`}
+                onPress={() => selectMiss(opt.value)}
+                className="mb-2 items-center rounded bg-gray-200 py-3"
+              >
+                <Text className="text-gray-700">{opt.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </Pressable>
+      </Modal>
 
       <Pressable
         testID="gir-toggle"
