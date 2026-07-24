@@ -119,12 +119,16 @@ export default function RoundsScreen() {
           data={rounds}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <View className="border-b border-gray-200 py-3">
+            <Pressable
+              testID={`round-history-${item.id}`}
+              onPress={() => router.push({ pathname: '/round/scorecard', params: { id: item.id } })}
+              className="border-b border-gray-200 py-3"
+            >
               <Text className="text-base font-medium">{item.courses?.name ?? 'Unknown course'}</Text>
               <Text className="text-sm text-gray-500">
                 {item.date_played} · Score {item.total_score ?? '-'} · Putts {item.total_putts ?? '-'}
               </Text>
-            </View>
+            </Pressable>
           )}
         />
       )}

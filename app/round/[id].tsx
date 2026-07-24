@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { View, Text, TextInput, ScrollView, Pressable, ActivityIndicator, Alert, Modal } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, Stack } from 'expo-router';
 import { useActiveRound } from '@/lib/hooks/useActiveRound';
 import { syncPendingRounds } from '@/lib/hooks/useRoundSync';
 import { addPendingRound } from '@/lib/offline/pendingRounds';
@@ -24,9 +24,25 @@ export default function LiveRoundScreen() {
   const [finishing, setFinishing] = useState(false);
   const [missModalOpen, setMissModalOpen] = useState(false);
 
+  const scorecardHeaderButton = (
+    <Stack.Screen
+      options={{
+        headerRight: () => (
+          <Pressable
+            testID="scorecard-button"
+            onPress={() => router.push({ pathname: '/round/scorecard', params: { id: 'active' } })}
+          >
+            <Text className="mr-2 font-medium text-green-700">Scorecard</Text>
+          </Pressable>
+        ),
+      }}
+    />
+  );
+
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-white">
+        {scorecardHeaderButton}
         <ActivityIndicator testID="round-loading" />
       </View>
     );
@@ -35,6 +51,7 @@ export default function LiveRoundScreen() {
   if (!activeRound) {
     return (
       <View className="flex-1 items-center justify-center bg-white px-6">
+        {scorecardHeaderButton}
         <Text className="text-center text-gray-500">No round in progress.</Text>
       </View>
     );
@@ -118,6 +135,7 @@ export default function LiveRoundScreen() {
   if (isFinishPanel) {
     return (
       <ScrollView className="flex-1 bg-white px-4 pt-4" testID="finish-panel">
+        {scorecardHeaderButton}
         <Text className="mb-2 text-xl font-semibold">Finish Round</Text>
         <Text className="mb-1 text-sm font-medium text-gray-700">Notes</Text>
         <TextInput
@@ -183,6 +201,7 @@ export default function LiveRoundScreen() {
 
   return (
     <ScrollView className="flex-1 bg-white px-4 pt-4" testID="hole-view">
+      {scorecardHeaderButton}
       <Text className="text-xl font-semibold">
         Hole {hole.hole_number} · Par {hole.par}
         {extraStrokes > 0 ? ` (${adjustedPar})` : ''}
