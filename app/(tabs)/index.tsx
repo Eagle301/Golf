@@ -1,8 +1,18 @@
+import { useCallback } from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { useProfile } from '@/lib/hooks/useProfile';
 
 export default function DashboardScreen() {
-  const { handicap, loading } = useProfile();
+  const { handicap, loading, refetch } = useProfile();
+
+  // Refetch every time this tab regains focus (e.g. after finishing a round
+  // updates the handicap) so it doesn't require an app restart to catch up.
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
 
   return (
     <View className="flex-1 items-center justify-center bg-white">

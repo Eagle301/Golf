@@ -1,10 +1,19 @@
-import { View, Text, FlatList, Pressable, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useCallback } from 'react';
+import { View, Text, FlatList, Pressable, ActivityIndicator, RefreshControl } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useCourses } from '@/lib/hooks/useCourses';
 
 export default function CoursesScreen() {
-  const { courses, loading, error } = useCourses();
+  const { courses, loading, error, refetch } = useCourses();
   const router = useRouter();
+
+  // Refetch every time this tab regains focus (e.g. after adding/editing a
+  // course) so the list doesn't require an app restart to catch up.
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
 
   if (loading) {
     return (
@@ -51,6 +60,9 @@ export default function CoursesScreen() {
           className="px-4"
           data={courses}
           keyExtractor={(item) => item.id}
+          refreshControl={
+            <RefreshControl testID="courses-refresh-control" refreshing={loading} onRefresh={refetch} />
+          }
           renderItem={({ item }) => (
             <Pressable
               testID={`course-row-${item.id}`}

@@ -1,19 +1,21 @@
 import { useCallback, useEffect, useState } from 'react';
-import { View, Text, FlatList, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, Pressable, ActivityIndicator, RefreshControl } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { getCachedCourses, refreshCourseCache } from '@/lib/offline/courseCache';
 import { getActiveRound, setActiveRound } from '@/lib/offline/activeRound';
 import { generateLocalId } from '@/lib/offline/localId';
+import { syncPendingRounds } from '@/lib/hooks/useRoundSync';
 import type { ActiveRound, CachedCourse } from '@/lib/offline/types';
 import { useRounds } from '@/lib/hooks/useRounds';
 import { getCurrentHandicap } from '@/lib/hooks/useProfile';
 
 export default function RoundsScreen() {
   const router = useRouter();
-  const { rounds, loading: roundsLoading, error: roundsError } = useRounds();
+  const { rounds, loading: roundsLoading, error: roundsError, refetch: refetchRounds } = useRounds();
 
   const [courses, setCourses] = useState<CachedCourse[]>([]);
   const [activeRoundCourseName, setActiveRoundCourseName] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const loadCourses = useCallback(async () => {
     setCourses(await getCachedCourses());
@@ -29,11 +31,21 @@ export default function RoundsScreen() {
     loadCourses();
   }, [loadCourses]);
 
+  // Refetch every time this tab regains focus (e.g. after finishing a round)
+  // so the history list doesn't require an app restart to catch up.
   useFocusEffect(
     useCallback(() => {
       loadActiveRound();
-    }, [loadActiveRound])
+      refetchRounds();
+    }, [loadActiveRound, refetchRounds])
   );
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    await syncPendingRounds();
+    await Promise.all([loadCourses(), loadActiveRound(), refetchRounds()]);
+    setRefreshing(false);
+  }
 
   async function startRound(course: CachedCourse) {
     const handicap = await getCurrentHandicap();
@@ -118,6 +130,9 @@ export default function RoundsScreen() {
           className="px-4"
           data={rounds}
           keyExtractor={(item) => item.id}
+          refreshControl={
+            <RefreshControl testID="rounds-refresh-control" refreshing={refreshing} onRefresh={handleRefresh} />
+          }
           renderItem={({ item }) => (
             <Pressable
               testID={`round-history-${item.id}`}

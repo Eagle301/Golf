@@ -130,7 +130,7 @@ export default function LiveRoundScreen() {
       holeLogs: finalHoleLogs,
     });
     await discardActiveRound();
-    syncPendingRounds();
+    await syncPendingRounds();
     setFinishing(false);
     router.push('/rounds');
   }
