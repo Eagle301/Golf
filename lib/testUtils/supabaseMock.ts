@@ -1,6 +1,6 @@
 export function createQueryBuilderMock<T>(result: { data: T; error: any }) {
   const builder: any = {};
-  const chainMethods = ['select', 'insert', 'update', 'upsert', 'delete', 'eq', 'order'];
+  const chainMethods = ['select', 'insert', 'update', 'upsert', 'delete', 'eq', 'order', 'limit', 'gt'];
   chainMethods.forEach((method) => {
     builder[method] = jest.fn(() => builder);
   });

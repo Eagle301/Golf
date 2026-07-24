@@ -15,6 +15,7 @@ function makeRound(localId: string): PendingRound {
     total_score: 90,
     total_putts: 32,
     score_differential: 18,
+    handicap_at_time: 12.4,
     holeLogs: [],
   };
 }

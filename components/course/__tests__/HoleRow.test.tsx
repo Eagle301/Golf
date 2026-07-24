@@ -2,7 +2,7 @@ import { render, fireEvent } from '@testing-library/react-native';
 import { HoleRow } from '../HoleRow';
 
 describe('HoleRow', () => {
-  const baseHole = { hole_number: 1, par: null, length_meters: null };
+  const baseHole = { hole_number: 1, par: null, length_meters: null, stroke_index: null };
 
   it('renders the hole number', () => {
     const { getByText } = render(<HoleRow hole={baseHole} onChange={jest.fn()} />);
@@ -21,5 +21,12 @@ describe('HoleRow', () => {
     const { getByTestId } = render(<HoleRow hole={baseHole} onChange={onChange} />);
     fireEvent.changeText(getByTestId('length-1'), '350');
     expect(onChange).toHaveBeenCalledWith({ ...baseHole, length_meters: 350 });
+  });
+
+  it('calls onChange with a parsed stroke index', () => {
+    const onChange = jest.fn();
+    const { getByTestId } = render(<HoleRow hole={baseHole} onChange={onChange} />);
+    fireEvent.changeText(getByTestId('stroke-index-1'), '7');
+    expect(onChange).toHaveBeenCalledWith({ ...baseHole, stroke_index: 7 });
   });
 });

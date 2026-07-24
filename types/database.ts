@@ -10,6 +10,7 @@ export type FairwayHit =
 export interface Profile {
   id: string;
   full_name: string | null;
+  handicap: number | null;
   created_at: string;
 }
 
@@ -20,6 +21,8 @@ export interface Course {
   hole_count: 9 | 18;
   total_par: number | null;
   total_length_meters: number | null;
+  course_rating: number | null;
+  slope_rating: number | null;
   created_at: string;
 }
 
@@ -29,6 +32,7 @@ export interface Hole {
   hole_number: number;
   par: 3 | 4 | 5;
   length_meters: number | null;
+  stroke_index: number | null;
 }
 
 export interface Round {
@@ -41,6 +45,7 @@ export interface Round {
   weather: Weather | null;
   notes: string | null;
   score_differential: number | null;
+  handicap_at_time: number | null;
   created_at: string;
 }
 

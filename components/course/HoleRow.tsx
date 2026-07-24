@@ -11,7 +11,7 @@ const PAR_OPTIONS: Array<3 | 4 | 5> = [3, 4, 5];
 export function HoleRow({ hole, onChange }: HoleRowProps) {
   return (
     <View className="flex-row items-center justify-between border-b border-gray-200 py-3">
-      <Text className="w-10 text-base font-medium">{hole.hole_number}</Text>
+      <Text className="w-8 text-base font-medium">{hole.hole_number}</Text>
       <View className="flex-row">
         {PAR_OPTIONS.map((par) => (
           <Pressable
@@ -28,13 +28,24 @@ export function HoleRow({ hole, onChange }: HoleRowProps) {
       </View>
       <TextInput
         testID={`length-${hole.hole_number}`}
-        className="w-20 rounded border border-gray-300 px-2 py-1 text-right"
+        className="w-16 rounded border border-gray-300 px-2 py-1 text-right"
         keyboardType="number-pad"
         placeholder="m"
         value={hole.length_meters != null ? String(hole.length_meters) : ''}
         onChangeText={(text) => {
           const parsed = text === '' ? null : parseInt(text, 10);
           onChange({ ...hole, length_meters: Number.isNaN(parsed as number) ? null : parsed });
+        }}
+      />
+      <TextInput
+        testID={`stroke-index-${hole.hole_number}`}
+        className="w-12 rounded border border-gray-300 px-2 py-1 text-right"
+        keyboardType="number-pad"
+        placeholder="SI"
+        value={hole.stroke_index != null ? String(hole.stroke_index) : ''}
+        onChangeText={(text) => {
+          const parsed = text === '' ? null : parseInt(text, 10);
+          onChange({ ...hole, stroke_index: Number.isNaN(parsed as number) ? null : parsed });
         }}
       />
     </View>

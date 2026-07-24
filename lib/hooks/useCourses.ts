@@ -7,6 +7,7 @@ export interface HoleInput {
   hole_number: number;
   par: 3 | 4 | 5 | null;
   length_meters: number | null;
+  stroke_index: number | null;
 }
 
 export interface CourseListItem {
@@ -15,19 +16,28 @@ export interface CourseListItem {
   hole_count: HoleCount;
   total_par: number | null;
   total_length_meters: number | null;
+  course_rating: number | null;
+  slope_rating: number | null;
 }
 
 export interface SaveCourseInput {
   id?: string;
   name: string;
   hole_count: HoleCount;
+  course_rating: number | null;
+  slope_rating: number | null;
   holes: HoleInput[];
 }
 
 export class CourseValidationError extends Error {}
 
 function blankHoles(count: HoleCount): HoleInput[] {
-  return Array.from({ length: count }, (_, i) => ({ hole_number: i + 1, par: null, length_meters: null }));
+  return Array.from({ length: count }, (_, i) => ({
+    hole_number: i + 1,
+    par: null,
+    length_meters: null,
+    stroke_index: null,
+  }));
 }
 
 export interface UseCoursesResult {
@@ -48,7 +58,7 @@ export function useCourses(): UseCoursesResult {
 
     const { data, error: fetchError } = await supabase
       .from('courses')
-      .select('id, name, hole_count, total_par, total_length_meters')
+      .select('id, name, hole_count, total_par, total_length_meters, course_rating, slope_rating')
       .order('created_at', { ascending: false });
 
     if (fetchError) {
@@ -67,7 +77,13 @@ export function useCourses(): UseCoursesResult {
 }
 
 export interface UseCourseResult {
-  course: { id: string | null; name: string; hole_count: HoleCount };
+  course: {
+    id: string | null;
+    name: string;
+    hole_count: HoleCount;
+    course_rating: number | null;
+    slope_rating: number | null;
+  };
   holes: HoleInput[];
   loading: boolean;
   error: string | null;
@@ -76,10 +92,12 @@ export interface UseCourseResult {
 
 export function useCourse(id: string): UseCourseResult {
   const isNew = id === 'new';
-  const [course, setCourse] = useState<{ id: string | null; name: string; hole_count: HoleCount }>({
+  const [course, setCourse] = useState<UseCourseResult['course']>({
     id: null,
     name: '',
     hole_count: 18,
+    course_rating: null,
+    slope_rating: null,
   });
   const [holes, setHoles] = useState<HoleInput[]>(blankHoles(18));
   const [loading, setLoading] = useState(!isNew);
@@ -87,7 +105,7 @@ export function useCourse(id: string): UseCourseResult {
 
   const fetchCourse = useCallback(async () => {
     if (isNew) {
-      setCourse({ id: null, name: '', hole_count: 18 });
+      setCourse({ id: null, name: '', hole_count: 18, course_rating: null, slope_rating: null });
       setHoles(blankHoles(18));
       setLoading(false);
       return;
@@ -97,8 +115,12 @@ export function useCourse(id: string): UseCourseResult {
     setError(null);
 
     const [courseResult, holesResult] = await Promise.all([
-      supabase.from('courses').select('id, name, hole_count').eq('id', id).single(),
-      supabase.from('holes').select('hole_number, par, length_meters').eq('course_id', id).order('hole_number'),
+      supabase.from('courses').select('id, name, hole_count, course_rating, slope_rating').eq('id', id).single(),
+      supabase
+        .from('holes')
+        .select('hole_number, par, length_meters, stroke_index')
+        .eq('course_id', id)
+        .order('hole_number'),
     ]);
 
     if (courseResult.error) {
@@ -112,8 +134,20 @@ export function useCourse(id: string): UseCourseResult {
       return;
     }
 
-    const courseData = courseResult.data as { id: string; name: string; hole_count: HoleCount };
-    setCourse({ id: courseData.id, name: courseData.name, hole_count: courseData.hole_count });
+    const courseData = courseResult.data as {
+      id: string;
+      name: string;
+      hole_count: HoleCount;
+      course_rating: number | null;
+      slope_rating: number | null;
+    };
+    setCourse({
+      id: courseData.id,
+      name: courseData.name,
+      hole_count: courseData.hole_count,
+      course_rating: courseData.course_rating,
+      slope_rating: courseData.slope_rating,
+    });
 
     const holesByNumber = new Map<number, HoleInput>(
       ((holesResult.data as HoleInput[]) ?? []).map((h) => [h.hole_number, h])
@@ -121,7 +155,14 @@ export function useCourse(id: string): UseCourseResult {
     setHoles(
       Array.from({ length: courseData.hole_count }, (_, i) => {
         const holeNumber = i + 1;
-        return holesByNumber.get(holeNumber) ?? { hole_number: holeNumber, par: null, length_meters: null };
+        return (
+          holesByNumber.get(holeNumber) ?? {
+            hole_number: holeNumber,
+            par: null,
+            length_meters: null,
+            stroke_index: null,
+          }
+        );
       })
     );
     setLoading(false);
@@ -141,6 +182,14 @@ function validateSaveCourseInput(input: SaveCourseInput): void {
   if (input.holes.length !== input.hole_count) {
     throw new CourseValidationError(`All ${input.hole_count} holes must be filled in.`);
   }
+  if (input.course_rating === null || input.course_rating <= 0) {
+    throw new CourseValidationError('Course Rating is required.');
+  }
+  if (input.slope_rating === null || input.slope_rating < 55 || input.slope_rating > 155) {
+    throw new CourseValidationError('Slope Rating must be between 55 and 155.');
+  }
+
+  const usedIndexes = new Set<number>();
   for (const hole of input.holes) {
     if (hole.par !== 3 && hole.par !== 4 && hole.par !== 5) {
       throw new CourseValidationError(`Hole ${hole.hole_number} needs a par of 3, 4, or 5.`);
@@ -148,6 +197,15 @@ function validateSaveCourseInput(input: SaveCourseInput): void {
     if (!hole.length_meters || hole.length_meters <= 0) {
       throw new CourseValidationError(`Hole ${hole.hole_number} needs a length in meters.`);
     }
+    if (!hole.stroke_index || hole.stroke_index < 1 || hole.stroke_index > input.hole_count) {
+      throw new CourseValidationError(
+        `Hole ${hole.hole_number} needs a stroke index between 1 and ${input.hole_count}.`
+      );
+    }
+    if (usedIndexes.has(hole.stroke_index)) {
+      throw new CourseValidationError(`Stroke index ${hole.stroke_index} is used more than once.`);
+    }
+    usedIndexes.add(hole.stroke_index);
   }
 }
 
@@ -174,6 +232,8 @@ export async function saveCourse(input: SaveCourseInput): Promise<string> {
         hole_count: input.hole_count,
         total_par: totalPar,
         total_length_meters: totalLength,
+        course_rating: input.course_rating,
+        slope_rating: input.slope_rating,
       })
       .select('id')
       .single();
@@ -187,6 +247,8 @@ export async function saveCourse(input: SaveCourseInput): Promise<string> {
         hole_count: input.hole_count,
         total_par: totalPar,
         total_length_meters: totalLength,
+        course_rating: input.course_rating,
+        slope_rating: input.slope_rating,
       })
       .eq('id', courseId);
 
@@ -208,6 +270,7 @@ export async function saveCourse(input: SaveCourseInput): Promise<string> {
       hole_number: h.hole_number,
       par: h.par,
       length_meters: h.length_meters,
+      stroke_index: h.stroke_index,
     })),
     { onConflict: 'course_id,hole_number' }
   );

@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { useActiveRound } from '@/lib/hooks/useActiveRound';
 import { syncPendingRounds } from '@/lib/hooks/useRoundSync';
 import { addPendingRound } from '@/lib/offline/pendingRounds';
-import { calculateGir } from '@/lib/calculations';
+import { calculateGir, calculateRoundDifferential, calculateCourseHandicap, strokesForHole } from '@/lib/calculations';
 import type { HoleLogEntry } from '@/lib/offline/types';
 import type { FairwayHit } from '@/types/database';
 
@@ -79,7 +79,10 @@ export default function LiveRoundScreen() {
     }));
     const totalScore = finalHoleLogs.reduce((sum, h) => sum + (h.score ?? 0), 0);
     const totalPutts = finalHoleLogs.reduce((sum, h) => sum + (h.putts ?? 0), 0);
-    const totalPar = finalHoleLogs.reduce((sum, h) => sum + h.par, 0);
+    const scoreDifferential =
+      activeRound.course_rating != null && activeRound.slope_rating != null
+        ? calculateRoundDifferential(totalScore, activeRound.course_rating, activeRound.slope_rating)
+        : null;
 
     await addPendingRound({
       localId: activeRound.localId,
@@ -88,7 +91,8 @@ export default function LiveRoundScreen() {
       notes: activeRound.notes,
       total_score: totalScore,
       total_putts: totalPutts,
-      score_differential: totalScore - totalPar,
+      score_differential: scoreDifferential,
+      handicap_at_time: activeRound.handicap_at_start,
       holeLogs: finalHoleLogs,
     });
     await discardActiveRound();
@@ -155,6 +159,22 @@ export default function LiveRoundScreen() {
       : hole.gir;
   const fairwayIsNo = hole.fairway_hit != null && hole.fairway_hit !== 'yes';
 
+  const courseHandicap =
+    activeRound.handicap_at_start != null &&
+    activeRound.course_rating != null &&
+    activeRound.slope_rating != null &&
+    activeRound.total_par != null
+      ? calculateCourseHandicap(
+          activeRound.handicap_at_start,
+          activeRound.slope_rating,
+          activeRound.course_rating,
+          activeRound.total_par
+        )
+      : null;
+  const extraStrokes =
+    courseHandicap != null && hole.stroke_index != null ? strokesForHole(courseHandicap, hole.stroke_index) : 0;
+  const adjustedPar = hole.par + extraStrokes;
+
   function selectMiss(value: FairwayHit) {
     if (!hole) return;
     updateHole({ ...hole, fairway_hit: value });
@@ -165,6 +185,7 @@ export default function LiveRoundScreen() {
     <ScrollView className="flex-1 bg-white px-4 pt-4" testID="hole-view">
       <Text className="text-xl font-semibold">
         Hole {hole.hole_number} · Par {hole.par}
+        {extraStrokes > 0 ? ` (${adjustedPar})` : ''}
       </Text>
 
       <Text className="mb-1 mt-4 text-sm font-medium text-gray-700">Score</Text>

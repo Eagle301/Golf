@@ -13,13 +13,13 @@ export async function getCachedCourses(): Promise<CachedCourse[]> {
 export async function refreshCourseCache(): Promise<void> {
   const { data: courses, error: coursesError } = await supabase
     .from('courses')
-    .select('id, name, hole_count, total_par');
+    .select('id, name, hole_count, total_par, course_rating, slope_rating');
 
   if (coursesError || !courses) return;
 
   const { data: holes, error: holesError } = await supabase
     .from('holes')
-    .select('id, course_id, hole_number, par, length_meters');
+    .select('id, course_id, hole_number, par, length_meters, stroke_index');
 
   if (holesError || !holes) return;
 
@@ -28,6 +28,8 @@ export async function refreshCourseCache(): Promise<void> {
     name: course.name,
     hole_count: course.hole_count,
     total_par: course.total_par,
+    course_rating: course.course_rating,
+    slope_rating: course.slope_rating,
     holes: (holes as any[])
       .filter((h) => h.course_id === course.id)
       .sort((a, b) => a.hole_number - b.hole_number)
@@ -36,6 +38,7 @@ export async function refreshCourseCache(): Promise<void> {
         hole_number: h.hole_number,
         par: h.par,
         length_meters: h.length_meters,
+        stroke_index: h.stroke_index,
       })),
   }));
 

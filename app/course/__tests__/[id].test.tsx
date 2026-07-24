@@ -22,12 +22,14 @@ describe('CourseFormScreen', () => {
     hole_number: i + 1,
     par: 4 as const,
     length_meters: 350,
+    stroke_index: i + 1,
   }));
 
   const blankHoles = Array.from({ length: 18 }, (_, i) => ({
     hole_number: i + 1,
     par: null,
     length_meters: null,
+    stroke_index: null,
   }));
 
   beforeEach(() => {
@@ -38,7 +40,7 @@ describe('CourseFormScreen', () => {
   it('disables Save until all holes are filled in', () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ id: 'new' });
     (useCoursesModule.useCourse as jest.Mock).mockReturnValue({
-      course: { id: null, name: '', hole_count: 18 },
+      course: { id: null, name: '', hole_count: 18, course_rating: null, slope_rating: null },
       holes: blankHoles,
       loading: false,
       error: null,
@@ -52,7 +54,7 @@ describe('CourseFormScreen', () => {
   it('saves a new course and navigates back', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ id: 'new' });
     (useCoursesModule.useCourse as jest.Mock).mockReturnValue({
-      course: { id: null, name: '', hole_count: 18 },
+      course: { id: null, name: '', hole_count: 18, course_rating: null, slope_rating: null },
       holes: validHoles,
       loading: false,
       error: null,
@@ -61,18 +63,25 @@ describe('CourseFormScreen', () => {
 
     render(<CourseFormScreen />);
     fireEvent.changeText(screen.getByTestId('course-name-input'), 'Test Course');
+    fireEvent.changeText(screen.getByTestId('course-rating-input'), '72.5');
+    fireEvent.changeText(screen.getByTestId('slope-rating-input'), '130');
     fireEvent.press(screen.getByTestId('save-course-button'));
 
     await waitFor(() => expect(back).toHaveBeenCalled());
     expect(useCoursesModule.saveCourse).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'Test Course', holes: validHoles })
+      expect.objectContaining({
+        name: 'Test Course',
+        course_rating: 72.5,
+        slope_rating: 130,
+        holes: validHoles,
+      })
     );
   });
 
   it('shows the delete button only when editing an existing course', () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ id: 'abc' });
     (useCoursesModule.useCourse as jest.Mock).mockReturnValue({
-      course: { id: 'abc', name: 'Existing', hole_count: 18 },
+      course: { id: 'abc', name: 'Existing', hole_count: 18, course_rating: 72.5, slope_rating: 130 },
       holes: validHoles,
       loading: false,
       error: null,
@@ -85,7 +94,7 @@ describe('CourseFormScreen', () => {
   it('does not show the delete button for a new course', () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ id: 'new' });
     (useCoursesModule.useCourse as jest.Mock).mockReturnValue({
-      course: { id: null, name: '', hole_count: 18 },
+      course: { id: null, name: '', hole_count: 18, course_rating: null, slope_rating: null },
       holes: blankHoles,
       loading: false,
       error: null,

@@ -18,3 +18,30 @@ export function calculateHandicap(rounds: Round[]): number | null {
 export function calculateGir(score: number, putts: number, par: number): boolean {
   return score - putts <= par - 2;
 }
+
+/** Round handicap differential = (score - Course Rating) * (113 / Slope Rating). */
+export function calculateRoundDifferential(score: number, courseRating: number, slopeRating: number): number {
+  return (score - courseRating) * (113 / slopeRating);
+}
+
+/** Course Handicap = HC * (Slope / 113) + (CR - Par), rounded to the nearest whole number. */
+export function calculateCourseHandicap(
+  userHandicap: number,
+  slopeRating: number,
+  courseRating: number,
+  coursePar: number
+): number {
+  const chc = userHandicap * (slopeRating / 113) + (courseRating - coursePar);
+  return Math.round(chc);
+}
+
+/**
+ * Extra strokes given to a hole for a given Course Handicap and stroke index (1-18).
+ * A CHC of 22 gives every hole 1 stroke (floor(22/18)), plus a further stroke on
+ * holes with stroke_index 1-4 (22 % 18 = 4).
+ */
+export function strokesForHole(courseHandicap: number, strokeIndex: number): number {
+  const fullRounds = Math.floor(courseHandicap / 18);
+  const remainder = courseHandicap % 18;
+  return fullRounds + (strokeIndex <= remainder ? 1 : 0);
+}

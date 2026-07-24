@@ -20,6 +20,8 @@ export default function CourseFormScreen() {
 
   const [name, setName] = useState('');
   const [holeCount, setHoleCount] = useState<HoleCount>(18);
+  const [courseRating, setCourseRating] = useState('');
+  const [slopeRating, setSlopeRating] = useState('');
   const [holes, setHoles] = useState<HoleInput[]>(initialHoles);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -27,15 +29,34 @@ export default function CourseFormScreen() {
   useEffect(() => {
     setName(course.name);
     setHoleCount(course.hole_count);
-  }, [course.name, course.hole_count]);
+    setCourseRating(course.course_rating != null ? String(course.course_rating) : '');
+    setSlopeRating(course.slope_rating != null ? String(course.slope_rating) : '');
+  }, [course.name, course.hole_count, course.course_rating, course.slope_rating]);
 
   useEffect(() => {
     setHoles(initialHoles);
   }, [initialHoles]);
 
+  const parsedCourseRating = courseRating.trim() === '' ? null : parseFloat(courseRating);
+  const parsedSlopeRating = slopeRating.trim() === '' ? null : parseInt(slopeRating, 10);
+
   const isValid =
     name.trim().length > 0 &&
-    holes.every((h) => (h.par === 3 || h.par === 4 || h.par === 5) && !!h.length_meters && h.length_meters > 0);
+    parsedCourseRating !== null &&
+    parsedCourseRating > 0 &&
+    parsedSlopeRating !== null &&
+    parsedSlopeRating >= 55 &&
+    parsedSlopeRating <= 155 &&
+    holes.every(
+      (h) =>
+        (h.par === 3 || h.par === 4 || h.par === 5) &&
+        !!h.length_meters &&
+        h.length_meters > 0 &&
+        !!h.stroke_index &&
+        h.stroke_index >= 1 &&
+        h.stroke_index <= holeCount
+    ) &&
+    new Set(holes.map((h) => h.stroke_index)).size === holes.length;
 
   const totalPar = holes.reduce((sum, h) => sum + (h.par ?? 0), 0);
   const totalLength = holes.reduce((sum, h) => sum + (h.length_meters ?? 0), 0);
@@ -54,6 +75,7 @@ export default function CourseFormScreen() {
         hole_number: prev.length + i + 1,
         par: null,
         length_meters: null,
+        stroke_index: null,
       }));
       return [...prev, ...extra];
     });
@@ -63,7 +85,14 @@ export default function CourseFormScreen() {
     setSaveError(null);
     setSaving(true);
     try {
-      await saveCourse({ id: course.id ?? undefined, name, hole_count: holeCount, holes });
+      await saveCourse({
+        id: course.id ?? undefined,
+        name,
+        hole_count: holeCount,
+        course_rating: parsedCourseRating,
+        slope_rating: parsedSlopeRating,
+        holes,
+      });
       router.back();
     } catch (err) {
       if (err instanceof CourseValidationError) {
@@ -120,6 +149,31 @@ export default function CourseFormScreen() {
         onChangeText={setName}
         placeholder="e.g. Pebble Beach"
       />
+
+      <View className="mb-4 flex-row">
+        <View className="mr-3 flex-1">
+          <Text className="mb-1 text-sm font-medium text-gray-700">Course Rating</Text>
+          <TextInput
+            testID="course-rating-input"
+            className="rounded border border-gray-300 px-3 py-2"
+            keyboardType="decimal-pad"
+            value={courseRating}
+            onChangeText={setCourseRating}
+            placeholder="e.g. 72.5"
+          />
+        </View>
+        <View className="flex-1">
+          <Text className="mb-1 text-sm font-medium text-gray-700">Slope Rating</Text>
+          <TextInput
+            testID="slope-rating-input"
+            className="rounded border border-gray-300 px-3 py-2"
+            keyboardType="number-pad"
+            value={slopeRating}
+            onChangeText={setSlopeRating}
+            placeholder="e.g. 130"
+          />
+        </View>
+      </View>
 
       <Text className="mb-1 text-sm font-medium text-gray-700">Holes</Text>
       <View className="mb-4 flex-row">

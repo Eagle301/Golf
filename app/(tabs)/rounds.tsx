@@ -6,6 +6,7 @@ import { getActiveRound, setActiveRound } from '@/lib/offline/activeRound';
 import { generateLocalId } from '@/lib/offline/localId';
 import type { ActiveRound, CachedCourse } from '@/lib/offline/types';
 import { useRounds } from '@/lib/hooks/useRounds';
+import { getCurrentHandicap } from '@/lib/hooks/useProfile';
 
 export default function RoundsScreen() {
   const router = useRouter();
@@ -35,17 +36,23 @@ export default function RoundsScreen() {
   );
 
   async function startRound(course: CachedCourse) {
+    const handicap = await getCurrentHandicap();
     const newRound: ActiveRound = {
       localId: generateLocalId(),
       course_id: course.id,
       course_name: course.name,
       hole_count: course.hole_count,
+      course_rating: course.course_rating,
+      slope_rating: course.slope_rating,
+      total_par: course.total_par,
+      handicap_at_start: handicap,
       date_played: new Date().toISOString().slice(0, 10),
       notes: '',
       currentHoleIndex: 0,
       holeLogs: course.holes.map((h) => ({
         hole_number: h.hole_number,
         par: h.par,
+        stroke_index: h.stroke_index,
         hole_id: h.id,
         score: null,
         putts: null,
