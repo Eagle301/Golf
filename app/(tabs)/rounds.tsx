@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { View, Text, FlatList, Pressable, ActivityIndicator, RefreshControl } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { getCachedCourses, refreshCourseCache } from '@/lib/offline/courseCache';
@@ -27,17 +27,15 @@ export default function RoundsScreen() {
     setActiveRoundCourseName(round?.course_name ?? null);
   }, []);
 
-  useEffect(() => {
-    loadCourses();
-  }, [loadCourses]);
-
-  // Refetch every time this tab regains focus (e.g. after finishing a round)
-  // so the history list doesn't require an app restart to catch up.
+  // Refetch every time this tab regains focus (e.g. after finishing a round,
+  // or adding/editing a course elsewhere) so nothing requires an app restart
+  // to catch up.
   useFocusEffect(
     useCallback(() => {
+      loadCourses();
       loadActiveRound();
       refetchRounds();
-    }, [loadActiveRound, refetchRounds])
+    }, [loadCourses, loadActiveRound, refetchRounds])
   );
 
   async function handleRefresh() {
