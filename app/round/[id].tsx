@@ -6,6 +6,7 @@ import { syncPendingRounds } from '@/lib/hooks/useRoundSync';
 import { addPendingRound } from '@/lib/offline/pendingRounds';
 import { calculateGir, calculateRoundDifferential, calculateCourseHandicap, strokesForHole } from '@/lib/calculations';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { RoundOverviewScorecard } from '@/components/round/RoundOverviewScorecard';
 import type { HoleLogEntry } from '@/lib/offline/types';
 import type { FairwayHit } from '@/types/database';
 
@@ -56,8 +57,22 @@ export default function LiveRoundScreen() {
     );
   } else {
     const { currentHoleIndex, hole_count, holeLogs } = activeRound;
+    const isOverview = currentHoleIndex === -1;
     const isFinishPanel = currentHoleIndex >= hole_count;
-    const hole = !isFinishPanel ? holeLogs[currentHoleIndex] : null;
+    const hole = !isOverview && !isFinishPanel ? holeLogs[currentHoleIndex] : null;
+
+    const courseHandicap =
+      activeRound.handicap_at_start != null &&
+      activeRound.course_rating != null &&
+      activeRound.slope_rating != null &&
+      activeRound.total_par != null
+        ? calculateCourseHandicap(
+            activeRound.handicap_at_start,
+            activeRound.slope_rating,
+            activeRound.course_rating,
+            activeRound.total_par
+          )
+        : null;
 
     function updateHole(updated: HoleLogEntry) {
       if (!activeRound) return;
@@ -150,6 +165,45 @@ export default function LiveRoundScreen() {
           </Pressable>
         </ScrollView>
       );
+    } else if (isOverview) {
+      body = (
+        <ScrollView className="flex-1 bg-white px-4 pt-4" testID="overview-panel">
+          <Text className="mb-1 text-xl font-semibold">{activeRound.course_name}</Text>
+          <View className="mb-4 flex-row justify-between rounded-lg bg-gray-100 px-4 py-3">
+            <View>
+              <Text className="text-xs text-gray-500">Course Handicap</Text>
+              <Text testID="overview-course-handicap" className="text-lg font-semibold">
+                {courseHandicap ?? '-'}
+              </Text>
+            </View>
+            <View>
+              <Text className="text-xs text-gray-500">Par</Text>
+              <Text testID="overview-total-par" className="text-lg font-semibold">
+                {activeRound.total_par ?? '-'}
+              </Text>
+            </View>
+            <View>
+              <Text className="text-xs text-gray-500">Length</Text>
+              <Text testID="overview-total-length" className="text-lg font-semibold">
+                {activeRound.total_length_meters ?? '-'} m
+              </Text>
+            </View>
+          </View>
+
+          <RoundOverviewScorecard holes={holeLogs} courseHandicap={courseHandicap} />
+
+          <Pressable
+            testID="start-round-button"
+            onPress={goNext}
+            className="mb-3 mt-4 items-center rounded bg-green-600 py-3"
+          >
+            <Text className="font-medium text-white">Start Round</Text>
+          </Pressable>
+          <Pressable testID="discard-round-button" onPress={handleDiscard} className="mb-8 items-center py-3">
+            <Text className="font-medium text-red-600">Discard Round</Text>
+          </Pressable>
+        </ScrollView>
+      );
     } else if (hole) {
       const canAdvance = hole.score !== null && hole.putts !== null;
       const gir =
@@ -158,18 +212,6 @@ export default function LiveRoundScreen() {
           : hole.gir;
       const fairwayIsNo = hole.fairway_hit != null && hole.fairway_hit !== 'yes';
 
-      const courseHandicap =
-        activeRound.handicap_at_start != null &&
-        activeRound.course_rating != null &&
-        activeRound.slope_rating != null &&
-        activeRound.total_par != null
-          ? calculateCourseHandicap(
-              activeRound.handicap_at_start,
-              activeRound.slope_rating,
-              activeRound.course_rating,
-              activeRound.total_par
-            )
-          : null;
       const extraStrokes =
         courseHandicap != null && hole.stroke_index != null
           ? strokesForHole(courseHandicap, hole.stroke_index)
@@ -327,13 +369,12 @@ export default function LiveRoundScreen() {
           <View className="mb-8 flex-row justify-between">
             <Pressable
               testID="previous-hole-button"
-              disabled={currentHoleIndex === 0}
               onPress={goPrevious}
-              className={`flex-1 mr-2 items-center rounded py-3 ${
-                currentHoleIndex === 0 ? 'bg-gray-200' : 'bg-gray-300'
-              }`}
+              className="flex-1 mr-2 items-center rounded bg-gray-300 py-3"
             >
-              <Text className="font-medium text-gray-700">Previous</Text>
+              <Text className="font-medium text-gray-700">
+                {currentHoleIndex === 0 ? 'Overview' : 'Previous'}
+              </Text>
             </Pressable>
             <Pressable
               testID="next-hole-button"

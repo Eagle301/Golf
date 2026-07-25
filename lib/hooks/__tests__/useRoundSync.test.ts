@@ -23,6 +23,7 @@ function makeRound(localId: string): PendingRound {
       {
         hole_number: 1,
         par: 4,
+        length_meters: 350,
         stroke_index: 5,
         hole_id: 'hole-1',
         score: 5,

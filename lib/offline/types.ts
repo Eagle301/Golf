@@ -13,6 +13,7 @@ export interface CachedCourse {
   name: string;
   hole_count: 9 | 18;
   total_par: number | null;
+  total_length_meters: number | null;
   course_rating: number | null;
   slope_rating: number | null;
   holes: CachedHole[];
@@ -21,6 +22,7 @@ export interface CachedCourse {
 export interface HoleLogEntry {
   hole_number: number;
   par: number;
+  length_meters: number | null;
   stroke_index: number | null;
   hole_id: string;
   score: number | null;
@@ -40,6 +42,7 @@ export interface ActiveRound {
   course_rating: number | null;
   slope_rating: number | null;
   total_par: number | null;
+  total_length_meters: number | null;
   handicap_at_start: number | null;
   date_played: string;
   notes: string;
