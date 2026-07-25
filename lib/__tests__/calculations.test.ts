@@ -4,6 +4,7 @@ import {
   calculateRoundDifferential,
   calculateCourseHandicap,
   strokesForHole,
+  STARTING_HANDICAP,
 } from '../calculations';
 import type { Round } from '@/types/database';
 
@@ -46,8 +47,9 @@ describe('calculateHandicap', () => {
     expect(calculateHandicap([...recent20, ...old5])).toBeCloseTo(4.5);
   });
 
-  it('returns null when there are no rounds with a differential', () => {
-    expect(calculateHandicap([])).toBeNull();
+  it('falls back to the standard beginning handicap when there are no rated rounds yet', () => {
+    expect(calculateHandicap([])).toBe(STARTING_HANDICAP);
+    expect(STARTING_HANDICAP).toBe(32);
   });
 });
 
