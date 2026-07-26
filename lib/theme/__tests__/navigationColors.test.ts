@@ -8,6 +8,8 @@ describe('getNavigationColors', () => {
       tabBarBackground: '#F5F7F2',
       tabBarActiveTint: '#1B3B2B',
       tabBarInactiveTint: '#4B5563',
+      borderColor: '#E5E7EB',
+      contentBackground: '#EBF0E6',
     });
   });
 
@@ -18,6 +20,8 @@ describe('getNavigationColors', () => {
       tabBarBackground: '#1E2621',
       tabBarActiveTint: '#F59E0B',
       tabBarInactiveTint: '#9CA3AF',
+      borderColor: '#2D3A32',
+      contentBackground: '#121614',
     });
   });
 

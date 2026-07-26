@@ -6,6 +6,8 @@ export interface NavigationColors {
   tabBarBackground: string;
   tabBarActiveTint: string;
   tabBarInactiveTint: string;
+  borderColor: string;
+  contentBackground: string;
 }
 
 export function getNavigationColors(
@@ -18,6 +20,8 @@ export function getNavigationColors(
       tabBarBackground: colors.dark.surface,
       tabBarActiveTint: colors.dark.accentGold,
       tabBarInactiveTint: colors.dark.textSecondary,
+      borderColor: colors.dark.border,
+      contentBackground: colors.dark.background,
     };
   }
 
@@ -27,5 +31,7 @@ export function getNavigationColors(
     tabBarBackground: colors.light.surface,
     tabBarActiveTint: colors.brand,
     tabBarInactiveTint: colors.light.textSecondary,
+    borderColor: '#E5E7EB',
+    contentBackground: colors.light.background,
   };
 }

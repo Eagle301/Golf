@@ -13,9 +13,10 @@ export default function TabsLayout() {
       screenOptions={({ route }) => ({
         tabBarActiveTintColor: nav.tabBarActiveTint,
         tabBarInactiveTintColor: nav.tabBarInactiveTint,
-        tabBarStyle: { backgroundColor: nav.tabBarBackground },
+        tabBarStyle: { backgroundColor: nav.tabBarBackground, borderTopColor: nav.borderColor },
         headerStyle: { backgroundColor: nav.headerBackground },
         headerTintColor: nav.headerTint,
+        headerShadowVisible: false,
         tabBarIcon: ({ color, focused, size }) => (
           <Ionicons name={getTabIconName(route.name, focused)} color={color} size={size} />
         ),
