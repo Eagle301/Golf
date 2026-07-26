@@ -21,7 +21,7 @@ describe('tailwind color tokens', () => {
       'accent-blue': colors.light.accentBlue,
       'accent-gold': colors.light.accentGold,
       'accent-gold-dark': colors.dark.accentGold,
-      border: colors.dark.border,
+      'border-dark': colors.dark.border,
     });
   });
 });

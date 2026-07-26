@@ -26,7 +26,9 @@ export function useThemePreference(): UseThemePreferenceResult {
       setColorScheme(stored);
     }
 
-    load();
+    load().catch((error) => {
+      console.warn('useThemePreference: failed to load theme preference', error);
+    });
 
     return () => {
       cancelled = true;
@@ -35,7 +37,11 @@ export function useThemePreference(): UseThemePreferenceResult {
 
   async function setPreference(next: ThemePreference): Promise<void> {
     setPreferenceState(next);
-    setColorScheme(next);
+    try {
+      setColorScheme(next);
+    } catch (error) {
+      console.warn('useThemePreference: failed to set color scheme', error);
+    }
     await setThemePreference(next);
   }
 
