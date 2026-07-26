@@ -15,8 +15,8 @@ multi-phase effort:
 - **Phase 1 (this spec):** theming infrastructure (color tokens, light/dark
   switching, persistence) + restyle of the two existing generic UI components
   (`Button`, `Avatar`) + a new `Card` component.
-- **Phase 2+ (future specs):** bottom nav / header shell redesign (including
-  the two nav tabs — Play, Community — that don't exist as screens yet),
+- **Phase 2+ (future specs):** header/bottom nav shell redesign for the three
+  existing tabs (Dashboard, Rounds, Courses — no new tabs are being added),
   remaining component library pieces (StatBadge, ScorecardTable restyle,
   LeaderboardRow, ChartContainer), and retrofitting existing screens
   (Dashboard, Rounds, Courses, Round detail, Scorecard) to the new look.
@@ -48,7 +48,8 @@ Current state relevant to this phase:
 
 ## Non-goals (deferred to later phases)
 
-- Bottom nav / header bar redesign, and the new Play/Community tabs.
+- Bottom nav / header bar redesign for the existing three tabs (no new tabs
+  are in scope for this redesign).
 - StatBadge, ScorecardTable, LeaderboardRow, ChartContainer components.
 - Any Settings screen UI for the theme toggle (the hook is built to support
   one later, but no UI is added now).
