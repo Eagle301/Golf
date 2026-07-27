@@ -1,14 +1,15 @@
 import '../global.css';
 import { Stack } from 'expo-router';
-import { View, Text, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator } from 'react-native';
 import { useColorScheme } from 'nativewind';
-import { useDevAutoSignIn } from '@/lib/hooks/useDevAutoSignIn';
+import { useAuthSession } from '@/lib/hooks/useAuthSession';
 import { useRoundSync } from '@/lib/hooks/useRoundSync';
 import { useThemePreference } from '@/lib/hooks/useThemePreference';
 import { getNavigationColors } from '@/lib/theme/navigationColors';
+import { SignInScreen } from '@/components/auth/SignInScreen';
 
 export default function RootLayout() {
-  const { ready, error } = useDevAutoSignIn();
+  const { ready, session } = useAuthSession();
   useRoundSync();
   useThemePreference();
   const { colorScheme } = useColorScheme();
@@ -22,12 +23,8 @@ export default function RootLayout() {
     );
   }
 
-  if (error) {
-    return (
-      <View className="flex-1 items-center justify-center bg-background px-6 dark:bg-background-dark">
-        <Text className="text-center text-red-600">Sign-in failed: {error}</Text>
-      </View>
-    );
+  if (!session) {
+    return <SignInScreen />;
   }
 
   return (

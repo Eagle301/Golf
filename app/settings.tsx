@@ -3,6 +3,7 @@ import { useThemePreference } from '@/lib/hooks/useThemePreference';
 import type { ThemePreference } from '@/lib/theme/themePreference';
 import { useParIndicatorPreference } from '@/lib/hooks/useParIndicatorPreference';
 import type { ParIndicatorPreference } from '@/lib/parIndicatorPreference';
+import { supabase } from '@/lib/supabase';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 
@@ -54,6 +55,16 @@ export default function SettingsScreen() {
           />
         ))}
       </Card>
+
+      <Text className="mb-2 mt-4 text-sm font-medium text-text-primary dark:text-text-primary-dark">
+        Account
+      </Text>
+      <Button
+        testID="sign-out-button"
+        label="Sign Out"
+        variant="destructive"
+        onPress={() => supabase.auth.signOut()}
+      />
     </View>
   );
 }

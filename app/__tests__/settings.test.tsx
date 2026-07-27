@@ -1,8 +1,10 @@
 jest.mock('@/lib/hooks/useThemePreference', () => ({ useThemePreference: jest.fn() }));
+jest.mock('@/lib/supabase', () => ({ supabase: { auth: { signOut: jest.fn() } } }));
 
 import { render, fireEvent, screen } from '@testing-library/react-native';
 import { useThemePreference } from '@/lib/hooks/useThemePreference';
 import { getParIndicatorPreference } from '@/lib/parIndicatorPreference';
+import { supabase } from '@/lib/supabase';
 import SettingsScreen from '../settings';
 
 describe('SettingsScreen', () => {
@@ -96,5 +98,18 @@ describe('SettingsScreen', () => {
     fireEvent.press(screen.getByTestId('par-indicator-option-net_par'));
 
     expect(await getParIndicatorPreference()).toBe('net_par');
+  });
+
+  it('signs out when the Sign Out button is tapped', () => {
+    (useThemePreference as jest.Mock).mockReturnValue({
+      preference: 'system',
+      colorScheme: 'light',
+      setPreference,
+    });
+
+    render(<SettingsScreen />);
+    fireEvent.press(screen.getByTestId('sign-out-button'));
+
+    expect(supabase.auth.signOut).toHaveBeenCalled();
   });
 });
