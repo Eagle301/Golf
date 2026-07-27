@@ -29,6 +29,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "e809aba1-156f-4e5b-b88d-8bcfbe3a3f36"
+      }
+    },
+    "owner": "egill26"
   }
 }
