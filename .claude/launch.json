@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "web", "--", "--port", "8090"],
       "port": 8090
+    },
+    {
+      "name": "golf-web-export",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "dist", "-l", "8091", "-s"],
+      "port": 8091
     }
   ]
 }
