@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { View, Text, FlatList, Pressable, ActivityIndicator, RefreshControl } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCourses } from '@/lib/hooks/useCourses';
+import { Button } from '@/components/ui/Button';
 
 export default function CoursesScreen() {
   const { courses, loading, error, refetch } = useCourses();
@@ -17,7 +18,7 @@ export default function CoursesScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-white">
+      <View className="flex-1 items-center justify-center bg-background dark:bg-background-dark">
         <ActivityIndicator testID="courses-loading" />
       </View>
     );
@@ -25,35 +26,36 @@ export default function CoursesScreen() {
 
   if (error) {
     return (
-      <View className="flex-1 items-center justify-center bg-white px-6">
+      <View className="flex-1 items-center justify-center bg-background px-6 dark:bg-background-dark">
         <Text className="text-center text-red-600">{error}</Text>
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1 bg-background dark:bg-background-dark">
       <View className="flex-row items-center justify-between px-4 pt-4">
-        <Text className="text-xl font-semibold">Courses</Text>
+        <Text className="text-xl font-semibold text-text-primary dark:text-text-primary-dark">Courses</Text>
         <Pressable
           testID="add-course-button"
           onPress={() => router.push('/course/new')}
-          className="h-9 w-9 items-center justify-center rounded-full bg-green-600"
+          className="h-9 w-9 items-center justify-center rounded-full bg-brand dark:bg-accent-gold-dark"
         >
-          <Text className="text-lg text-white">+</Text>
+          <Text className="text-lg text-white dark:text-gray-900">+</Text>
         </Pressable>
       </View>
 
       {courses.length === 0 ? (
         <View className="flex-1 items-center justify-center px-6">
-          <Text className="mb-4 text-center text-gray-500">No courses yet.</Text>
-          <Pressable
+          <Text className="mb-4 text-center text-text-secondary dark:text-text-secondary-dark">
+            No courses yet.
+          </Text>
+          <Button
             testID="add-first-course-button"
+            label="Add your first course"
             onPress={() => router.push('/course/new')}
-            className="rounded bg-green-600 px-4 py-2"
-          >
-            <Text className="text-white">Add your first course</Text>
-          </Pressable>
+            containerClassName="px-6"
+          />
         </View>
       ) : (
         <FlatList
@@ -67,10 +69,12 @@ export default function CoursesScreen() {
             <Pressable
               testID={`course-row-${item.id}`}
               onPress={() => router.push(`/course/${item.id}`)}
-              className="border-b border-gray-200 py-3"
+              className="border-b border-gray-200 py-3 dark:border-border-dark"
             >
-              <Text className="text-base font-medium">{item.name}</Text>
-              <Text className="text-sm text-gray-500">
+              <Text className="text-base font-medium text-text-primary dark:text-text-primary-dark">
+                {item.name}
+              </Text>
+              <Text className="text-sm text-text-secondary dark:text-text-secondary-dark">
                 Par {item.total_par ?? '-'} · {item.total_length_meters ?? '-'} m
               </Text>
             </Pressable>

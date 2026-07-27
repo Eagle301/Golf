@@ -5,7 +5,7 @@ import { getPendingRounds, removePendingRound } from '@/lib/offline/pendingRound
 import { calculateHandicap } from '@/lib/calculations';
 import type { Round } from '@/types/database';
 
-async function updateUserHandicap(userId: string): Promise<void> {
+export async function updateUserHandicap(userId: string): Promise<void> {
   const { data, error } = await supabase
     .from('rounds')
     .select('date_played, score_differential')

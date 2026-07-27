@@ -10,24 +10,17 @@ export interface NavigationColors {
   contentBackground: string;
 }
 
+// Dark mode is temporarily disabled while the visual redesign is paused:
+// the header always shows the brand green (regardless of scheme), and
+// everything else (tab bar, screen content background) always uses the
+// light-mode palette. The `scheme` param is kept so callers don't need to
+// change, and so re-enabling per-scheme colors later is a one-line revert.
 export function getNavigationColors(
-  scheme: 'light' | 'dark' | undefined | null
+  _scheme: 'light' | 'dark' | undefined | null
 ): NavigationColors {
-  if (scheme === 'dark') {
-    return {
-      headerBackground: colors.dark.surface,
-      headerTint: colors.dark.textPrimary,
-      tabBarBackground: colors.dark.surface,
-      tabBarActiveTint: colors.dark.accentGold,
-      tabBarInactiveTint: colors.dark.textSecondary,
-      borderColor: colors.dark.border,
-      contentBackground: colors.dark.background,
-    };
-  }
-
   return {
-    headerBackground: colors.light.surface,
-    headerTint: colors.light.textPrimary,
+    headerBackground: colors.brand,
+    headerTint: '#FFFFFF',
     tabBarBackground: colors.light.surface,
     tabBarActiveTint: colors.brand,
     tabBarInactiveTint: colors.light.textSecondary,

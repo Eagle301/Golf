@@ -19,22 +19,22 @@ beforeEach(async () => {
 });
 
 describe('useThemePreference', () => {
-  it('applies the system default on first launch', async () => {
+  it('applies the system default on first launch, but forces the light color scheme (dark mode temporarily disabled)', async () => {
     const { result } = renderHook(() => useThemePreference());
 
-    await waitFor(() => expect(mockSetColorScheme).toHaveBeenCalledWith('system'));
+    await waitFor(() => expect(mockSetColorScheme).toHaveBeenCalledWith('light'));
     expect(result.current.preference).toBe('system');
   });
 
-  it('applies a previously persisted preference on mount', async () => {
+  it('tracks a previously persisted preference, but still forces the light color scheme', async () => {
     await setThemePreference('dark');
     const { result } = renderHook(() => useThemePreference());
 
     await waitFor(() => expect(result.current.preference).toBe('dark'));
-    expect(mockSetColorScheme).toHaveBeenCalledWith('dark');
+    expect(mockSetColorScheme).toHaveBeenCalledWith('light');
   });
 
-  it('updates and persists a new preference', async () => {
+  it('persists a new preference selection, but still forces the light color scheme', async () => {
     const { result } = renderHook(() => useThemePreference());
     await waitFor(() => expect(result.current.preference).toBe('system'));
 
@@ -43,7 +43,7 @@ describe('useThemePreference', () => {
     });
 
     expect(result.current.preference).toBe('dark');
-    expect(mockSetColorScheme).toHaveBeenCalledWith('dark');
+    expect(mockSetColorScheme).toHaveBeenCalledWith('light');
     expect(await AsyncStorage.getItem('golf.themePreference')).toBe('dark');
   });
 });

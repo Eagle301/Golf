@@ -8,6 +8,7 @@ import { syncPendingRounds } from '@/lib/hooks/useRoundSync';
 import type { ActiveRound, CachedCourse } from '@/lib/offline/types';
 import { useRounds } from '@/lib/hooks/useRounds';
 import { getCurrentHandicap } from '@/lib/hooks/useProfile';
+import { AutoWidthButton } from '@/components/ui/AutoWidthButton';
 
 export default function RoundsScreen() {
   const router = useRouter();
@@ -80,45 +81,46 @@ export default function RoundsScreen() {
   }
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1 bg-background dark:bg-background-dark">
       <View className="px-4 pt-4">
-        <Text className="text-xl font-semibold">Rounds</Text>
+        <Text className="text-xl font-semibold text-text-primary dark:text-text-primary-dark">Rounds</Text>
       </View>
 
       {activeRoundCourseName && (
         <Pressable
           testID="resume-round-banner"
           onPress={() => router.push('/round/active')}
-          className="mx-4 mt-3 rounded bg-yellow-100 px-4 py-3"
+          className="mx-4 mt-3 rounded-xl bg-accent-gold/15 px-4 py-3 dark:bg-accent-gold-dark/15"
         >
-          <Text className="font-medium text-yellow-900">
+          <Text className="font-medium text-text-primary dark:text-text-primary-dark">
             Round in progress at {activeRoundCourseName} — Resume
           </Text>
         </Pressable>
       )}
 
       <View className="px-4 pt-4">
-        <Text className="mb-2 text-sm font-medium text-gray-700">Start a round</Text>
+        <Text className="mb-2 text-sm font-medium text-text-primary dark:text-text-primary-dark">
+          Start a round
+        </Text>
         {courses.length === 0 ? (
-          <Text className="text-gray-500">No courses available yet.</Text>
+          <Text className="text-text-secondary dark:text-text-secondary-dark">No courses available yet.</Text>
         ) : (
           <View className="flex-row flex-wrap">
             {courses.map((course) => (
-              <Pressable
+              <AutoWidthButton
                 key={course.id}
                 testID={`start-round-${course.id}`}
+                label={course.name}
                 onPress={() => startRound(course)}
-                className="mb-2 mr-2 rounded bg-green-600 px-3 py-2"
-              >
-                <Text className="text-white">{course.name}</Text>
-              </Pressable>
+                containerClassName="mb-3 mr-3"
+              />
             ))}
           </View>
         )}
       </View>
 
       <View className="mt-2 px-4 pt-2">
-        <Text className="mb-2 text-sm font-medium text-gray-700">History</Text>
+        <Text className="mb-2 text-sm font-medium text-text-primary dark:text-text-primary-dark">History</Text>
       </View>
 
       {roundsLoading ? (
@@ -137,10 +139,12 @@ export default function RoundsScreen() {
             <Pressable
               testID={`round-history-${item.id}`}
               onPress={() => router.push({ pathname: '/round/scorecard', params: { id: item.id } })}
-              className="border-b border-gray-200 py-3"
+              className="border-b border-gray-200 py-3 dark:border-border-dark"
             >
-              <Text className="text-base font-medium">{item.courses?.name ?? 'Unknown course'}</Text>
-              <Text className="text-sm text-gray-500">
+              <Text className="text-base font-medium text-text-primary dark:text-text-primary-dark">
+                {item.courses?.name ?? 'Unknown course'}
+              </Text>
+              <Text className="text-sm text-text-secondary dark:text-text-secondary-dark">
                 {item.date_played} · Score {item.total_score ?? '-'} · Putts {item.total_putts ?? '-'}
               </Text>
             </Pressable>

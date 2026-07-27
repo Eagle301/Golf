@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { updateUserHandicap } from '@/lib/hooks/useRoundSync';
 import type { FairwayHit } from '@/types/database';
 
 export interface RoundDetailHole {
@@ -10,6 +11,7 @@ export interface RoundDetailHole {
   putts: number | null;
   fairway_hit: FairwayHit | null;
   gir: boolean | null;
+  penalties: number | null;
 }
 
 export interface RoundDetail {
@@ -17,7 +19,9 @@ export interface RoundDetail {
   totalPar: number;
   courseRating: number | null;
   slopeRating: number | null;
+  holeCount: 9 | 18;
   handicapAtTime: number | null;
+  scoreDifferential: number | null;
   holes: RoundDetailHole[];
 }
 
@@ -38,7 +42,7 @@ export function useRoundDetail(roundId: string): UseRoundDetailResult {
 
     const { data: round, error: roundError } = await supabase
       .from('rounds')
-      .select('handicap_at_time, courses(name, total_par, course_rating, slope_rating)')
+      .select('handicap_at_time, score_differential, courses(name, total_par, course_rating, slope_rating, hole_count)')
       .eq('id', roundId)
       .single();
 
@@ -50,7 +54,7 @@ export function useRoundDetail(roundId: string): UseRoundDetailResult {
 
     const { data: holeLogs, error: holeLogsError } = await supabase
       .from('hole_logs')
-      .select('score, putts, fairway_hit, gir, holes(hole_number, par, stroke_index)')
+      .select('score, putts, fairway_hit, gir, penalties, holes(hole_number, par, stroke_index)')
       .eq('round_id', roundId);
 
     if (holeLogsError || !holeLogs) {
@@ -71,6 +75,7 @@ export function useRoundDetail(roundId: string): UseRoundDetailResult {
         putts: h.putts,
         fairway_hit: h.fairway_hit,
         gir: h.gir,
+        penalties: h.penalties,
       }))
       .sort((a, b) => a.hole_number - b.hole_number);
 
@@ -79,7 +84,9 @@ export function useRoundDetail(roundId: string): UseRoundDetailResult {
       totalPar: course?.total_par ?? 0,
       courseRating: course?.course_rating ?? null,
       slopeRating: course?.slope_rating ?? null,
+      holeCount: course?.hole_count ?? 18,
       handicapAtTime: roundData.handicap_at_time,
+      scoreDifferential: roundData.score_differential,
       holes,
     });
     setLoading(false);
@@ -90,4 +97,17 @@ export function useRoundDetail(roundId: string): UseRoundDetailResult {
   }, [fetchDetail]);
 
   return { roundDetail, loading, error };
+}
+
+/** Deletes a round (its hole_logs cascade-delete with it) and recalculates the user's handicap. */
+export async function deleteRound(roundId: string): Promise<void> {
+  const { error } = await supabase.from('rounds').delete().eq('id', roundId);
+  if (error) throw error;
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) {
+    await updateUserHandicap(user.id);
+  }
 }

@@ -2,7 +2,7 @@ import { Text, View, Pressable, type PressableProps } from 'react-native';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'destructive' | 'link';
 
-interface ButtonProps extends Omit<PressableProps, 'children'> {
+export interface ButtonProps extends Omit<PressableProps, 'children'> {
   label: string;
   variant?: ButtonVariant;
   testID?: string;

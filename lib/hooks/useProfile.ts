@@ -14,6 +14,7 @@ export async function getCurrentHandicap(): Promise<number | null> {
 
 export interface UseProfileResult {
   handicap: number | null;
+  fullName: string | null;
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
@@ -21,6 +22,7 @@ export interface UseProfileResult {
 
 export function useProfile(): UseProfileResult {
   const [handicap, setHandicap] = useState<number | null>(null);
+  const [fullName, setFullName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,14 +40,16 @@ export function useProfile(): UseProfileResult {
 
     const { data, error: fetchError } = await supabase
       .from('profiles')
-      .select('handicap')
+      .select('handicap, full_name')
       .eq('id', user.id)
       .single();
 
     if (fetchError) {
       setError(fetchError.message);
     } else {
-      setHandicap((data as { handicap: number | null }).handicap);
+      const profile = data as { handicap: number | null; full_name: string | null };
+      setHandicap(profile.handicap);
+      setFullName(profile.full_name);
     }
     setLoading(false);
   }, []);
@@ -54,5 +58,5 @@ export function useProfile(): UseProfileResult {
     fetchProfile();
   }, [fetchProfile]);
 
-  return { handicap, loading, error, refetch: fetchProfile };
+  return { handicap, fullName, loading, error, refetch: fetchProfile };
 }

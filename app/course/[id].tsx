@@ -3,6 +3,7 @@ import { View, Text, TextInput, ScrollView, Pressable, ActivityIndicator } from 
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { HoleRow } from '@/components/course/HoleRow';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { Button } from '@/components/ui/Button';
 import {
   useCourse,
   saveCourse,
@@ -123,7 +124,7 @@ export default function CourseFormScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-white">
+      <View className="flex-1 items-center justify-center bg-background dark:bg-background-dark">
         <ActivityIndicator testID="course-form-loading" />
       </View>
     );
@@ -131,18 +132,18 @@ export default function CourseFormScreen() {
 
   if (loadError) {
     return (
-      <View className="flex-1 items-center justify-center bg-white px-6">
+      <View className="flex-1 items-center justify-center bg-background px-6 dark:bg-background-dark">
         <Text className="text-center text-red-600">{loadError}</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView className="flex-1 bg-white px-4 pt-4" testID="course-form">
-      <Text className="mb-1 text-sm font-medium text-gray-700">Course name</Text>
+    <ScrollView className="flex-1 bg-background px-4 pt-4 dark:bg-background-dark" testID="course-form">
+      <Text className="mb-1 text-sm font-medium text-text-primary dark:text-text-primary-dark">Course name</Text>
       <TextInput
         testID="course-name-input"
-        className="mb-4 rounded border border-gray-300 px-3 py-2"
+        className="mb-4 rounded border border-gray-300 px-3 py-2 text-text-primary dark:border-border-dark dark:bg-surface-dark dark:text-text-primary-dark"
         value={name}
         onChangeText={setName}
         placeholder="e.g. Pebble Beach"
@@ -150,10 +151,12 @@ export default function CourseFormScreen() {
 
       <View className="mb-4 flex-row">
         <View className="mr-3 flex-1">
-          <Text className="mb-1 text-sm font-medium text-gray-700">Course Rating</Text>
+          <Text className="mb-1 text-sm font-medium text-text-primary dark:text-text-primary-dark">
+            Course Rating
+          </Text>
           <TextInput
             testID="course-rating-input"
-            className="rounded border border-gray-300 px-3 py-2"
+            className="rounded border border-gray-300 px-3 py-2 text-text-primary dark:border-border-dark dark:bg-surface-dark dark:text-text-primary-dark"
             keyboardType="decimal-pad"
             value={courseRating}
             onChangeText={setCourseRating}
@@ -161,10 +164,12 @@ export default function CourseFormScreen() {
           />
         </View>
         <View className="flex-1">
-          <Text className="mb-1 text-sm font-medium text-gray-700">Slope Rating</Text>
+          <Text className="mb-1 text-sm font-medium text-text-primary dark:text-text-primary-dark">
+            Slope Rating
+          </Text>
           <TextInput
             testID="slope-rating-input"
-            className="rounded border border-gray-300 px-3 py-2"
+            className="rounded border border-gray-300 px-3 py-2 text-text-primary dark:border-border-dark dark:bg-surface-dark dark:text-text-primary-dark"
             keyboardType="number-pad"
             value={slopeRating}
             onChangeText={setSlopeRating}
@@ -173,17 +178,17 @@ export default function CourseFormScreen() {
         </View>
       </View>
 
-      <Text className="mb-1 text-sm font-medium text-gray-700">Holes</Text>
-      <View className="mb-4 flex-row">
+      <Text className="mb-1 text-sm font-medium text-text-primary dark:text-text-primary-dark">Holes</Text>
+      <View className="mb-4 flex-row gap-3">
         {HOLE_COUNT_OPTIONS.map((count) => (
-          <Pressable
+          <Button
             key={count}
             testID={`hole-count-${count}`}
+            label={String(count)}
+            variant={holeCount === count ? 'primary' : 'secondary'}
             onPress={() => changeHoleCount(count)}
-            className={`mr-2 rounded px-4 py-2 ${holeCount === count ? 'bg-green-600' : 'bg-gray-200'}`}
-          >
-            <Text className={holeCount === count ? 'text-white' : 'text-gray-700'}>{count}</Text>
-          </Pressable>
+            containerClassName="flex-1"
+          />
         ))}
       </View>
 
@@ -191,29 +196,29 @@ export default function CourseFormScreen() {
         <HoleRow key={hole.hole_number} hole={hole} onChange={updateHole} />
       ))}
 
-      <Text className="my-3 text-sm text-gray-600">
+      <Text className="my-3 text-sm text-text-secondary dark:text-text-secondary-dark">
         Total par {totalPar} · {totalLength} m
       </Text>
 
       {saveError && <Text className="mb-3 text-red-600">{saveError}</Text>}
 
-      <Pressable
+      <Button
         testID="save-course-button"
+        label={saving ? 'Saving...' : 'Save'}
+        variant="primary"
         disabled={!isValid || saving}
         onPress={handleSave}
-        className={`mb-3 items-center rounded py-3 ${isValid && !saving ? 'bg-green-600' : 'bg-gray-300'}`}
-      >
-        <Text className="font-medium text-white">{saving ? 'Saving...' : 'Save'}</Text>
-      </Pressable>
+        containerClassName="mb-3"
+      />
 
       {course.id && (
-        <Pressable
+        <Button
           testID="delete-course-button"
+          label="Delete Course"
+          variant="destructive"
           onPress={handleDelete}
-          className="mb-8 items-center rounded border border-red-600 py-3"
-        >
-          <Text className="font-medium text-red-600">Delete Course</Text>
-        </Pressable>
+          containerClassName="mb-8"
+        />
       )}
 
       <ConfirmDialog

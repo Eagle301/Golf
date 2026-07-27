@@ -23,7 +23,10 @@ export function useThemePreference(): UseThemePreferenceResult {
       const stored = await getThemePreference();
       if (cancelled) return;
       setPreferenceState(stored);
-      setColorScheme(stored);
+      // Dark mode is temporarily disabled while the visual redesign is
+      // paused - always force the light appearance regardless of the
+      // stored preference. Revert to `setColorScheme(stored)` to re-enable.
+      setColorScheme('light');
     }
 
     load().catch((error) => {
@@ -38,7 +41,9 @@ export function useThemePreference(): UseThemePreferenceResult {
   async function setPreference(next: ThemePreference): Promise<void> {
     setPreferenceState(next);
     try {
-      setColorScheme(next);
+      // See comment in the load effect above - dark mode is temporarily
+      // disabled, so this always resolves to light regardless of `next`.
+      setColorScheme('light');
     } catch (error) {
       console.warn('useThemePreference: failed to set color scheme', error);
     }
