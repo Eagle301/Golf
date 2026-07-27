@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { View, Text, TextInput, ScrollView, Pressable, ActivityIndicator, Modal } from 'react-native';
 import { useRouter, useFocusEffect, Stack } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useActiveRound } from '@/lib/hooks/useActiveRound';
 import { useParIndicatorPreference } from '@/lib/hooks/useParIndicatorPreference';
 import { syncPendingRounds } from '@/lib/hooks/useRoundSync';
@@ -635,14 +636,25 @@ export default function LiveRoundScreen() {
     <>
       <Stack.Screen
         options={{
+          headerLeft: () => (
+            <Pressable
+              testID="header-back-button"
+              onPress={() => (router.canGoBack() ? router.back() : router.replace('/rounds'))}
+              className="ml-2"
+              hitSlop={8}
+            >
+              <Ionicons name="chevron-back" color="#FFFFFF" size={26} />
+            </Pressable>
+          ),
           headerRight: () => (
-            <Button
+            <Pressable
               testID="scorecard-button"
-              variant="link"
-              label="Scorecard"
               onPress={() => router.push({ pathname: '/round/scorecard', params: { id: 'active' } })}
-              containerClassName="mr-2"
-            />
+              className="mr-2 rounded-full border border-white px-3 py-1.5"
+              hitSlop={8}
+            >
+              <Text className="text-sm font-medium text-white">Scorecard</Text>
+            </Pressable>
           ),
         }}
       />
