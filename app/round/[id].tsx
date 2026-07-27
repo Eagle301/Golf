@@ -379,7 +379,11 @@ export default function LiveRoundScreen() {
                     ? n === adjustedPar
                     : n === hole.par;
               return (
-              <View key={n} className="relative w-1/3 p-1">
+              <View
+                key={n}
+                style={hole.score === n ? { zIndex: 10 } : undefined}
+                className="relative w-1/3 p-1"
+              >
                 <Pressable
                   testID={`score-${n}`}
                   onPress={() => updateHole({ ...hole, score: n })}
@@ -402,7 +406,10 @@ export default function LiveRoundScreen() {
                   </Text>
                 </Pressable>
                 {hole.score === n && points !== null && (
-                  <View className="absolute -right-2 -top-2 h-8 min-w-8 items-center justify-center rounded-full border-2 border-white bg-green-700 px-1.5 dark:border-background-dark dark:bg-accent-gold-dark">
+                  <View
+                    style={{ zIndex: 10, elevation: 10 }}
+                    className="absolute -right-2 -top-2 h-8 min-w-8 items-center justify-center rounded-full border-2 border-white bg-green-700 px-1.5 dark:border-background-dark dark:bg-accent-gold-dark"
+                  >
                     <Text
                       testID="hole-points-badge"
                       className="text-lg font-extrabold text-white dark:text-gray-900"
