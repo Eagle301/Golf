@@ -2,10 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import {
   averageEighteenHoleScore,
+  averagePuttsPerRound,
   averageScoreByPar,
   averageScoringCategoriesPerRound,
   fairwayDistribution,
   girPercentage,
+  puttsDistribution,
+  type PuttsDistribution,
   type ScoringCategoryAverages,
 } from '@/lib/calculations';
 
@@ -18,6 +21,8 @@ export interface RoundStats {
   girPercentage: number;
   scoreByPar: { par3: number | null; par4: number | null; par5: number | null };
   scoringCategoryAverages: ScoringCategoryAverages;
+  averagePutts: number | null;
+  puttsDistribution: PuttsDistribution;
 }
 
 export interface UseRoundStatsResult {
@@ -42,7 +47,7 @@ export function useRoundStats(): UseRoundStatsResult {
 
     const { data: rounds, error: roundsError } = await supabase
       .from('rounds')
-      .select('id, total_score, courses(hole_count)')
+      .select('id, total_score, total_putts, courses(hole_count)')
       .order('date_played', { ascending: false })
       .limit(ROUND_STATS_LIMIT);
 
@@ -57,7 +62,10 @@ export function useRoundStats(): UseRoundStatsResult {
 
     const { data: holeLogs, error: holeLogsError } =
       roundIds.length > 0
-        ? await supabase.from('hole_logs').select('score, fairway_hit, gir, holes(par)').in('round_id', roundIds)
+        ? await supabase
+            .from('hole_logs')
+            .select('score, putts, fairway_hit, gir, holes(par)')
+            .in('round_id', roundIds)
         : { data: [] as any[], error: null };
 
     if (holeLogsError) {
@@ -79,6 +87,10 @@ export function useRoundStats(): UseRoundStatsResult {
         holeLogRows.map((h) => ({ par: h.holes?.par ?? 0, score: h.score })),
         roundRows.length
       ),
+      averagePutts: averagePuttsPerRound(
+        roundRows.map((r) => ({ total_putts: r.total_putts, hole_count: r.courses?.hole_count ?? 18 }))
+      ),
+      puttsDistribution: puttsDistribution(holeLogRows.map((h) => ({ putts: h.putts }))),
     });
     setLoading(false);
   }, []);

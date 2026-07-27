@@ -276,6 +276,47 @@ export function averageEighteenHoleScore(
   return normalized.reduce((sum, s) => sum + s, 0) / normalized.length;
 }
 
+export interface PuttsDistribution {
+  putts0Pct: number;
+  putts1Pct: number;
+  putts2Pct: number;
+  putts3Pct: number;
+  putts4PlusPct: number;
+}
+
+/** Percentage of holes (with a recorded putts count) landing in each bucket: 0, 1, 2, 3, 4+. */
+export function puttsDistribution(holeLogs: { putts: number | null }[]): PuttsDistribution {
+  const recorded = holeLogs.filter((h): h is { putts: number } => h.putts !== null);
+  if (recorded.length === 0) {
+    return { putts0Pct: 0, putts1Pct: 0, putts2Pct: 0, putts3Pct: 0, putts4PlusPct: 0 };
+  }
+
+  const pct = (predicate: (p: number) => boolean) =>
+    (recorded.filter((h) => predicate(h.putts)).length / recorded.length) * 100;
+
+  return {
+    putts0Pct: pct((p) => p === 0),
+    putts1Pct: pct((p) => p === 1),
+    putts2Pct: pct((p) => p === 2),
+    putts3Pct: pct((p) => p === 3),
+    putts4PlusPct: pct((p) => p >= 4),
+  };
+}
+
+/**
+ * Average putts per 18-hole-equivalent round. A 9-hole round's putts total
+ * is doubled before averaging so it contributes on the same basis as an 18.
+ */
+export function averagePuttsPerRound(
+  rounds: { total_putts: number | null; hole_count: 9 | 18 }[]
+): number | null {
+  const scored = rounds.filter((r): r is typeof r & { total_putts: number } => r.total_putts !== null);
+  if (scored.length === 0) return null;
+
+  const normalized = scored.map((r) => (r.hole_count === 9 ? r.total_putts * 2 : r.total_putts));
+  return normalized.reduce((sum, p) => sum + p, 0) / normalized.length;
+}
+
 export interface ScoringCategoryAverages {
   eagle: number;
   birdie: number;

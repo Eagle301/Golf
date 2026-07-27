@@ -30,4 +30,18 @@ describe('FairwayDistributionChart', () => {
     expect(tree).toContain('text-text-primary');
     expect(tree).toContain('dark:text-text-primary-dark');
   });
+
+  it('shows Hit% instead of N/A%, and hides the legend, in compact mode', () => {
+    render(
+      <FairwayDistributionChart
+        distribution={{ leftPct: 20, hitPct: 60, rightPct: 20, naPct: 10 }}
+        compact
+      />
+    );
+
+    expect(screen.getByTestId('fairway-hit-stat').props.children.join('')).toBe('Hit 60%');
+    expect(screen.queryByTestId('fairway-na-stat')).toBeNull();
+    expect(screen.queryByText('Left 20%')).toBeNull();
+    expect(screen.queryByText('Right 20%')).toBeNull();
+  });
 });

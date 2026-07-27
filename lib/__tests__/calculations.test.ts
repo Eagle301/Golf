@@ -15,6 +15,8 @@ import {
   girPercentage,
   averageEighteenHoleScore,
   averageScoringCategoriesPerRound,
+  puttsDistribution,
+  averagePuttsPerRound,
   calculatePoints,
   toSuperscript,
   STARTING_HANDICAP,
@@ -397,5 +399,66 @@ describe('averageScoringCategoriesPerRound', () => {
       double: 0,
       doubleOrWorse: 0,
     });
+  });
+});
+
+describe('puttsDistribution', () => {
+  it('computes the percentage of holes in each putts bucket', () => {
+    const holeLogs = [
+      { putts: 0 },
+      { putts: 1 },
+      { putts: 1 },
+      { putts: 2 },
+      { putts: 2 },
+      { putts: 2 },
+      { putts: 2 },
+      { putts: 3 },
+      { putts: 4 },
+      { putts: 5 },
+    ];
+    expect(puttsDistribution(holeLogs)).toEqual({
+      putts0Pct: 10,
+      putts1Pct: 20,
+      putts2Pct: 40,
+      putts3Pct: 10,
+      putts4PlusPct: 20,
+    });
+  });
+
+  it('ignores holes without a recorded putts count', () => {
+    const holeLogs = [{ putts: 2 }, { putts: null }];
+    expect(puttsDistribution(holeLogs).putts2Pct).toBe(100);
+  });
+
+  it('returns all zeroes when there is no putts data', () => {
+    expect(puttsDistribution([])).toEqual({
+      putts0Pct: 0,
+      putts1Pct: 0,
+      putts2Pct: 0,
+      putts3Pct: 0,
+      putts4PlusPct: 0,
+    });
+  });
+});
+
+describe('averagePuttsPerRound', () => {
+  it('averages 18-hole putts totals as-is', () => {
+    const rounds = [
+      { total_putts: 30, hole_count: 18 as const },
+      { total_putts: 32, hole_count: 18 as const },
+    ];
+    expect(averagePuttsPerRound(rounds)).toBe(31);
+  });
+
+  it('doubles 9-hole putts totals before averaging', () => {
+    const rounds = [
+      { total_putts: 30, hole_count: 18 as const },
+      { total_putts: 16, hole_count: 9 as const },
+    ];
+    expect(averagePuttsPerRound(rounds)).toBe(31);
+  });
+
+  it('returns null when no round has a putts total', () => {
+    expect(averagePuttsPerRound([{ total_putts: null, hole_count: 18 }])).toBeNull();
   });
 });

@@ -1,5 +1,5 @@
-import { useCallback } from 'react';
-import { View, Text, ActivityIndicator, ScrollView } from 'react-native';
+import { useCallback, useState } from 'react';
+import { View, Text, ActivityIndicator, ScrollView, Pressable } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useProfile } from '@/lib/hooks/useProfile';
 import { useScoreDifferentialHistory } from '@/lib/hooks/useScoreDifferentialHistory';
@@ -9,14 +9,35 @@ import { FairwayDistributionChart } from '@/components/dashboard/FairwayDistribu
 import { GirDonutChart } from '@/components/dashboard/GirDonutChart';
 import { ScoringByParChart } from '@/components/dashboard/ScoringByParChart';
 import { ScoringCategoryBreakdown } from '@/components/dashboard/ScoringCategoryBreakdown';
+import { PuttsDistributionChart } from '@/components/dashboard/PuttsDistributionChart';
 import { Avatar } from '@/components/ui/Avatar';
 import { Card } from '@/components/ui/Card';
+
+// Used only until the row below has been measured for the first time.
+const FALLBACK_COMPACT_CARD_HEIGHT = 208;
 
 export default function DashboardScreen() {
   const { handicap, fullName, loading, refetch } = useProfile();
   const { rounds: differentialRounds, loading: differentialLoading, refetch: refetchDifferentials } =
     useScoreDifferentialHistory();
   const { stats, loading: statsLoading, refetch: refetchStats } = useRoundStats();
+  const [fairwayPuttsExpanded, setFairwayPuttsExpanded] = useState(false);
+  // The avg-score/scoring-by-par row below is always mounted (it never
+  // toggles away), so measuring it is stable - unlike measuring the GIR
+  // card, which glitched every time it unmounted/remounted across the
+  // expand/collapse toggle. The compact fairway/putts card and the GIR card
+  // both get this exact height, so every stat card on the dashboard lines up.
+  const [bottomRowHeight, setBottomRowHeight] = useState<number | null>(null);
+  const compactCardHeight = bottomRowHeight ?? FALLBACK_COMPACT_CARD_HEIGHT;
+  // The compact card's content area (its height minus the Card's own vertical
+  // padding, py-4 = 16 top + 16 bottom), split into two explicit, equal
+  // halves - fixed pixel heights rather than flex-1, so the split line's
+  // position can't drift depending on how the two halves were last laid out.
+  const compactHalfHeight = (compactCardHeight - 32) / 2;
+
+  function measureBottomRowCard(height: number) {
+    setBottomRowHeight((prev) => Math.max(prev ?? 0, height));
+  }
 
   // Refetch every time this tab regains focus (e.g. after finishing a round
   // updates the handicap) so it doesn't require an app restart to catch up.
@@ -67,27 +88,100 @@ export default function DashboardScreen() {
       </Card>
 
       <View className="mt-6 w-full flex-row">
-        <Card className="mr-2 flex-1 px-4 py-4" testID="fairway-distribution-card">
-          {statsLoading ? (
-            <ActivityIndicator testID="fairway-distribution-loading" />
-          ) : (
-            <FairwayDistributionChart
-              distribution={stats?.fairwayDistribution ?? { leftPct: 0, hitPct: 0, rightPct: 0, naPct: 0 }}
-            />
-          )}
-        </Card>
+        <Pressable
+          testID="fairway-putts-toggle"
+          onPress={() => setFairwayPuttsExpanded((v) => !v)}
+          className={`flex-1 ${fairwayPuttsExpanded ? '' : 'mr-2'}`}
+        >
+          <Card
+            className={`flex-1 px-4 py-4 ${!fairwayPuttsExpanded ? 'overflow-hidden' : ''}`}
+            style={!fairwayPuttsExpanded ? { height: compactCardHeight } : undefined}
+            testID="fairway-distribution-card"
+          >
+            {statsLoading ? (
+              <ActivityIndicator testID="fairway-distribution-loading" />
+            ) : fairwayPuttsExpanded ? (
+              <>
+                <FairwayDistributionChart
+                  distribution={stats?.fairwayDistribution ?? { leftPct: 0, hitPct: 0, rightPct: 0, naPct: 0 }}
+                />
+                <View className="mt-4 border-t border-gray-200 pt-4 dark:border-border-dark">
+                  <PuttsDistributionChart
+                    distribution={
+                      stats?.puttsDistribution ?? {
+                        putts0Pct: 0,
+                        putts1Pct: 0,
+                        putts2Pct: 0,
+                        putts3Pct: 0,
+                        putts4PlusPct: 0,
+                      }
+                    }
+                    averagePerRound={stats?.averagePutts ?? null}
+                  />
+                </View>
+              </>
+            ) : (
+              // Compact: split the card into two explicit, equal-height
+              // halves, each vertically centering its bar - fixed pixel
+              // heights (not flex-1) so the split line's position can't
+              // drift depending on how the halves were laid out previously.
+              <>
+                <View style={{ height: compactHalfHeight, justifyContent: 'center' }}>
+                  <FairwayDistributionChart
+                    distribution={stats?.fairwayDistribution ?? { leftPct: 0, hitPct: 0, rightPct: 0, naPct: 0 }}
+                    compact
+                  />
+                </View>
+                <View
+                  className="border-t border-gray-200 dark:border-border-dark"
+                  style={{ height: compactHalfHeight, justifyContent: 'center' }}
+                >
+                  <PuttsDistributionChart
+                    distribution={
+                      stats?.puttsDistribution ?? {
+                        putts0Pct: 0,
+                        putts1Pct: 0,
+                        putts2Pct: 0,
+                        putts3Pct: 0,
+                        putts4PlusPct: 0,
+                      }
+                    }
+                    averagePerRound={stats?.averagePutts ?? null}
+                    compact
+                  />
+                </View>
+              </>
+            )}
+          </Card>
+        </Pressable>
 
-        <Card className="ml-2 flex-1 items-center px-4 py-4" testID="gir-donut-card">
-          {statsLoading ? (
-            <ActivityIndicator testID="gir-donut-loading" />
-          ) : (
-            <GirDonutChart percentage={stats?.girPercentage ?? 0} />
-          )}
-        </Card>
+        {!fairwayPuttsExpanded && (
+          // Plain View wrapper (mirroring the fairway side's Pressable) owns the
+          // flex-1 sizing; the Card itself carries no sizing classes. A flex
+          // item that carries its own padding grows unevenly against a sibling
+          // whose padding lives one level deeper - see fairway-distribution-card.
+          <View className="ml-2 flex-1">
+            <Card
+              className="items-center px-4 py-4"
+              style={{ height: compactCardHeight, justifyContent: 'center' }}
+              testID="gir-donut-card"
+            >
+              {statsLoading ? (
+                <ActivityIndicator testID="gir-donut-loading" />
+              ) : (
+                <GirDonutChart percentage={stats?.girPercentage ?? 0} />
+              )}
+            </Card>
+          </View>
+        )}
       </View>
 
       <View className="mt-4 w-full flex-row">
-        <Card className="mr-2 flex-1 items-center px-4 py-4" testID="average-score-card">
+        <Card
+          className="mr-2 flex-1 items-center px-4 py-4"
+          testID="average-score-card"
+          onLayout={(e) => measureBottomRowCard(e.nativeEvent.layout.height)}
+        >
           <Text className="text-xs text-text-secondary dark:text-text-secondary-dark">Avg. 18-hole score</Text>
           {statsLoading ? (
             <ActivityIndicator testID="average-score-loading" />
@@ -115,7 +209,11 @@ export default function DashboardScreen() {
           )}
         </Card>
 
-        <Card className="ml-2 flex-1 px-4 py-4" testID="scoring-by-par-card">
+        <Card
+          className="ml-2 flex-1 px-4 py-4"
+          testID="scoring-by-par-card"
+          onLayout={(e) => measureBottomRowCard(e.nativeEvent.layout.height)}
+        >
           {statsLoading ? (
             <ActivityIndicator testID="scoring-by-par-loading" />
           ) : (

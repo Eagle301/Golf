@@ -5,7 +5,7 @@ jest.mock('expo-router', () => ({
   useFocusEffect: (effect: () => void) => effect(),
 }));
 
-import { render, screen } from '@testing-library/react-native';
+import { render, screen, fireEvent } from '@testing-library/react-native';
 import { useProfile } from '@/lib/hooks/useProfile';
 import { useScoreDifferentialHistory } from '@/lib/hooks/useScoreDifferentialHistory';
 import { useRoundStats } from '@/lib/hooks/useRoundStats';
@@ -28,6 +28,8 @@ describe('DashboardScreen', () => {
         girPercentage: 35,
         scoreByPar: { par3: 3.5, par4: 4.8, par5: 5.2 },
         scoringCategoryAverages: { eagle: 0.1, birdie: 1.2, par: 8.5, bogey: 5.4, double: 2.1, doubleOrWorse: 0.7 },
+        averagePutts: 31.4,
+        puttsDistribution: { putts0Pct: 5, putts1Pct: 15, putts2Pct: 50, putts3Pct: 25, putts4PlusPct: 5 },
       },
       loading: false,
       refetch: refetchStats,
@@ -144,6 +146,63 @@ describe('DashboardScreen', () => {
     expect(screen.getByTestId('average-score-loading')).toBeTruthy();
     expect(screen.getByTestId('scoring-by-par-loading')).toBeTruthy();
   });
+
+  it('renders the putts distribution chart, compact by default (no "/ round" suffix)', () => {
+    (useScoreDifferentialHistory as jest.Mock).mockReturnValue({
+      rounds: [],
+      loading: false,
+      refetch: refetchDifferentials,
+    });
+
+    render(<DashboardScreen />);
+
+    expect(screen.getByTestId('putts-distribution-chart')).toBeTruthy();
+    expect(screen.getByTestId('putts-average-per-round').props.children).toBe('Avg. 31.4');
+  });
+
+  it('collapses the fairway/putts stats by default, showing Hit% and hiding the legends', () => {
+    (useScoreDifferentialHistory as jest.Mock).mockReturnValue({
+      rounds: [],
+      loading: false,
+      refetch: refetchDifferentials,
+    });
+
+    render(<DashboardScreen />);
+
+    expect(screen.getByTestId('fairway-hit-stat').props.children.join('')).toBe('Hit 60%');
+    expect(screen.queryByTestId('fairway-na-stat')).toBeNull();
+    expect(screen.getByTestId('gir-donut-card')).toBeTruthy();
+  });
+
+  it('expands the fairway/putts card to full detail on tap, hiding the GIR donut card', () => {
+    (useScoreDifferentialHistory as jest.Mock).mockReturnValue({
+      rounds: [],
+      loading: false,
+      refetch: refetchDifferentials,
+    });
+
+    render(<DashboardScreen />);
+    fireEvent.press(screen.getByTestId('fairway-putts-toggle'));
+
+    expect(screen.getByTestId('fairway-na-stat').props.children.join('')).toBe('N/A 10%');
+    expect(screen.getByTestId('putts-average-per-round').props.children).toBe('Avg. 31.4 / round');
+    expect(screen.queryByTestId('gir-donut-card')).toBeNull();
+  });
+
+  it('collapses back to compact and restores the GIR donut card on a second tap', () => {
+    (useScoreDifferentialHistory as jest.Mock).mockReturnValue({
+      rounds: [],
+      loading: false,
+      refetch: refetchDifferentials,
+    });
+
+    render(<DashboardScreen />);
+    fireEvent.press(screen.getByTestId('fairway-putts-toggle'));
+    fireEvent.press(screen.getByTestId('fairway-putts-toggle'));
+
+    expect(screen.getByTestId('fairway-hit-stat')).toBeTruthy();
+    expect(screen.getByTestId('gir-donut-card')).toBeTruthy();
+  });
 });
 
 describe('DashboardScreen theming', () => {
@@ -168,6 +227,8 @@ describe('DashboardScreen theming', () => {
         girPercentage: 35,
         scoreByPar: { par3: 3.5, par4: 4.8, par5: 5.2 },
         scoringCategoryAverages: { eagle: 0.1, birdie: 1.2, par: 8.5, bogey: 5.4, double: 2.1, doubleOrWorse: 0.7 },
+        averagePutts: 31.4,
+        puttsDistribution: { putts0Pct: 5, putts1Pct: 15, putts2Pct: 50, putts3Pct: 25, putts4PlusPct: 5 },
       },
       loading: false,
       refetch: refetchStats,
