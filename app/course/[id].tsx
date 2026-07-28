@@ -11,12 +11,13 @@ import {
   CourseValidationError,
   type HoleInput,
   type HoleCount,
+  type SaveCourseInput,
 } from '@/lib/hooks/useCourses';
 
 const HOLE_COUNT_OPTIONS: HoleCount[] = [9, 18];
 
 export default function CourseFormScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, importJson } = useLocalSearchParams<{ id: string; importJson?: string }>();
   const router = useRouter();
   const { course, holes: initialHoles, loading, error: loadError } = useCourse(id);
 
@@ -29,16 +30,39 @@ export default function CourseFormScreen() {
   const [saving, setSaving] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
+  // A CSV import (see app/(tabs)/courses.tsx) pre-fills this screen instead
+  // of the usual blank/fetched state - the two effects below must not clobber
+  // it once applied, since useCourse('new') re-settles its blank state on a
+  // later render after this component's first paint.
+  const isImporting = id === 'new' && !!importJson;
+
   useEffect(() => {
+    if (isImporting) return;
     setName(course.name);
     setHoleCount(course.hole_count);
     setCourseRating(course.course_rating != null ? String(course.course_rating) : '');
     setSlopeRating(course.slope_rating != null ? String(course.slope_rating) : '');
-  }, [course.name, course.hole_count, course.course_rating, course.slope_rating]);
+  }, [isImporting, course.name, course.hole_count, course.course_rating, course.slope_rating]);
 
   useEffect(() => {
+    if (isImporting) return;
     setHoles(initialHoles);
-  }, [initialHoles]);
+  }, [isImporting, initialHoles]);
+
+  useEffect(() => {
+    if (!isImporting) return;
+    try {
+      const imported = JSON.parse(importJson as string) as SaveCourseInput;
+      setName(imported.name);
+      setHoleCount(imported.hole_count);
+      setCourseRating(imported.course_rating != null ? String(imported.course_rating) : '');
+      setSlopeRating(imported.slope_rating != null ? String(imported.slope_rating) : '');
+      setHoles(imported.holes);
+    } catch {
+      setSaveError('Failed to load imported CSV data.');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isImporting, importJson]);
 
   const parsedCourseRating = courseRating.trim() === '' ? null : parseFloat(courseRating);
   const parsedSlopeRating = slopeRating.trim() === '' ? null : parseInt(slopeRating, 10);
