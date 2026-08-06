@@ -37,6 +37,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="index" options={{ title: 'Dashboard' }} />
       <Tabs.Screen name="rounds" options={{ title: 'Rounds' }} />
       <Tabs.Screen name="courses" options={{ title: 'Courses' }} />
+      <Tabs.Screen name="training" options={{ title: 'Training' }} />
     </Tabs>
   );
 }

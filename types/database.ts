@@ -62,6 +62,42 @@ export interface HoleLog {
   chip_shots: number;
 }
 
+export type TrainingCategory = 'putts' | 'short_game' | 'full_swing' | 'strategy';
+
+export interface TrainingRoutine {
+  id: string;
+  user_id: string;
+  name: string;
+  description: string | null;
+  category: TrainingCategory;
+  created_at: string;
+}
+
+export interface TrainingDrill {
+  id: string;
+  routine_id: string;
+  name: string;
+  target_value: number | null;
+  photo_url: string | null;
+  sort_order: number;
+}
+
+export interface TrainingSession {
+  id: string;
+  user_id: string;
+  routine_id: string;
+  date_played: string;
+  note: string | null;
+  created_at: string;
+}
+
+export interface TrainingDrillLog {
+  id: string;
+  session_id: string;
+  drill_id: string;
+  value: number | null;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -89,6 +125,26 @@ export interface Database {
         Row: HoleLog;
         Insert: Partial<HoleLog> & { round_id: string; hole_id: string };
         Update: Partial<HoleLog>;
+      };
+      training_routines: {
+        Row: TrainingRoutine;
+        Insert: Partial<TrainingRoutine> & { user_id: string; name: string; category: TrainingCategory };
+        Update: Partial<TrainingRoutine>;
+      };
+      training_drills: {
+        Row: TrainingDrill;
+        Insert: Partial<TrainingDrill> & { routine_id: string; name: string; sort_order: number };
+        Update: Partial<TrainingDrill>;
+      };
+      training_sessions: {
+        Row: TrainingSession;
+        Insert: Partial<TrainingSession> & { user_id: string; routine_id: string; date_played: string };
+        Update: Partial<TrainingSession>;
+      };
+      training_drill_logs: {
+        Row: TrainingDrillLog;
+        Insert: Partial<TrainingDrillLog> & { session_id: string; drill_id: string };
+        Update: Partial<TrainingDrillLog>;
       };
     };
   };

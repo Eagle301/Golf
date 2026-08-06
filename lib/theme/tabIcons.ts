@@ -6,6 +6,7 @@ export const TAB_ICON_NAMES: Record<string, { focused: IconName; unfocused: Icon
   index: { focused: 'home', unfocused: 'home-outline' },
   rounds: { focused: 'list', unfocused: 'list-outline' },
   courses: { focused: 'golf', unfocused: 'golf-outline' },
+  training: { focused: 'barbell', unfocused: 'barbell-outline' },
 };
 
 const FALLBACK_ICON: { focused: IconName; unfocused: IconName } = {
