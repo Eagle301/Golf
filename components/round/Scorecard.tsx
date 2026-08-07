@@ -213,9 +213,9 @@ export function Scorecard({ holes, courseHandicap, onSelectHole, roundSummary }:
       ? holes.reduce((sum, h) => sum + (points(h, courseHandicap, holeCount) ?? 0), 0)
       : null;
   const bruttoTotal = allScored ? calculateBruttoScore(holes, courseHandicap, holeCount) : null;
-  const netParForNine = isNineHoles ? calculateNetParForNine(totalPar, courseHandicap) : null;
+  const netParForNine = isNineHoles ? calculateNetParForNine(totalPar, roundSummary?.handicapIndex ?? null) : null;
   const bruttoCorrectedForEighteen =
-    bruttoTotal !== null && netParForNine !== null ? bruttoTotal + netParForNine + 1 : null;
+    bruttoTotal !== null && netParForNine !== null ? bruttoTotal + netParForNine : null;
 
   const fairwayEligible = holes.filter((h) => h.par !== 3);
   const fairwayHit = fairwayEligible.filter((h) => h.fairway_hit === 'yes').length;
@@ -379,7 +379,7 @@ export function Scorecard({ holes, courseHandicap, onSelectHole, roundSummary }:
                 className="text-xs text-text-secondary dark:text-text-secondary-dark"
               >
                 {isNineHoles
-                  ? `(${bruttoTotal ?? '-'} + ${netParForNine ?? '-'} + 1 − ${roundSummary.courseRating}) × 113/${roundSummary.slopeRating} = ${roundSummary.scoreDifferential != null ? roundSummary.scoreDifferential.toFixed(1) : '-'}`
+                  ? `(${bruttoTotal ?? '-'} + ${netParForNine ?? '-'} − ${roundSummary.courseRating}) × 113/${roundSummary.slopeRating} = ${roundSummary.scoreDifferential != null ? roundSummary.scoreDifferential.toFixed(1) : '-'}`
                   : `(${bruttoTotal ?? '-'} − ${roundSummary.courseRating}) × 113/${roundSummary.slopeRating} = ${roundSummary.scoreDifferential != null ? roundSummary.scoreDifferential.toFixed(1) : '-'}`}
               </Text>
             )}

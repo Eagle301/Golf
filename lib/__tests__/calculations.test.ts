@@ -31,10 +31,10 @@ describe('calculateRoundDifferential', () => {
     expect(calculateRoundDifferential(85, 70.5, 125)).toBeCloseTo(13.108, 2);
   });
 
-  it('for a 9-hole round, combines the actual score with (net par for the nine + 1) before comparing against the full course rating', () => {
-    // combinedScore = 45 (actual) + 40 (net par for the nine) + 1 = 86
-    // (86 - 67) * (113 / 113) = 19
-    expect(calculateRoundDifferential(45, 67, 113, 9, 40)).toBeCloseTo(19);
+  it('for a 9-hole round, combines the actual score with the expected score for the nine before comparing against the full course rating', () => {
+    // combinedScore = 45 (actual) + 40 (expected score for the nine) = 85
+    // (85 - 67) * (113 / 113) = 18
+    expect(calculateRoundDifferential(45, 67, 113, 9, 40)).toBeCloseTo(18);
   });
 });
 
@@ -174,16 +174,18 @@ describe('calculateNetPar / calculateTotalNetPar', () => {
 });
 
 describe('calculateNetParForNine', () => {
-  it('adds half the Course Handicap (rounded) to the par of the nine actually played', () => {
-    // Husafell: totalPar 36, CHC 22 -> 36 + round(22/2) = 36 + 11 = 47
-    expect(calculateNetParForNine(36, 22)).toBe(47);
+  it('adds half the Handicap Index (rounded up) to the par of the nine actually played', () => {
+    // Real GSÍ export: totalPar 34, Handicap Index 26.4-27.1 -> ceil(hcp/2) = 14 -> 34 + 14 = 48
+    expect(calculateNetParForNine(34, 26.4)).toBe(48);
+    expect(calculateNetParForNine(34, 27.1)).toBe(48);
   });
 
-  it('rounds an odd Course Handicap half to the nearest whole number', () => {
-    expect(calculateNetParForNine(36, 23)).toBe(36 + 12); // 23/2 = 11.5 -> rounds to 12
+  it('rounds a half-Handicap-Index up, not to the nearest whole number', () => {
+    expect(calculateNetParForNine(36, 23)).toBe(36 + 12); // 23/2 = 11.5 -> ceils to 12
+    expect(calculateNetParForNine(36, 22)).toBe(36 + 11); // 22/2 = 11 exactly -> stays 11
   });
 
-  it('falls back to plain par with no course handicap', () => {
+  it('falls back to plain par with no handicap index', () => {
     expect(calculateNetParForNine(36, null)).toBe(36);
   });
 });

@@ -181,16 +181,18 @@ describe('Scorecard', () => {
     it('for a 9-hole round, shows the brutto score as (brutto)/(brutto corrected for 18 holes)', () => {
       // 9 holes, no course handicap -> net par = par, cap = par + 2.
       // par 4 x9 = 36 par total; scores 5 each -> under cap (6) -> brutto = 45.
-      // corrected for 18 = brutto + netPar (36) + 1 = 82.
+      // corrected for 18 = brutto + (par 36 + ceil(handicapIndex 14.3 / 2) = 8) = 89.
       const holes = Array.from({ length: 9 }, (_, i) => makeHole({ hole_number: i + 1, par: 4, score: 5, putts: 2 }));
       render(<Scorecard holes={holes} courseHandicap={null} roundSummary={makeRoundSummary()} />);
 
-      expect(screen.getByTestId('scorecard-brutto-stat').props.children).toBe('45 / 82');
+      expect(screen.getByTestId('scorecard-brutto-stat').props.children).toBe('45 / 89');
     });
 
-    it('for a 9-hole round with a course handicap, corrects for 18 using par + half the course handicap (not per-hole stroke index)', () => {
-      // Husafell round: CHC 22 -> netParForNine = 36 + round(22/2) = 47.
-      // Per-hole stroke-index net-par capping still yields brutto = 51 (verified against real caps).
+    it('for a 9-hole round, corrects for 18 using par + half the Handicap Index (not the course handicap or per-hole stroke index)', () => {
+      // Husafell round: courseHandicap 22 is used only for per-hole net-double-bogey
+      // capping (still yields brutto = 51, verified against real caps) - the
+      // "expected other nine" uses roundSummary.handicapIndex (14.3) instead:
+      // netParForNine = 36 + ceil(14.3/2) = 36 + 8 = 44.
       const holes = [
         makeHole({ hole_number: 1, stroke_index: 9, par: 4, score: 5, putts: 2 }),
         makeHole({ hole_number: 2, stroke_index: 8, par: 5, score: 8, putts: 2 }),
@@ -204,7 +206,7 @@ describe('Scorecard', () => {
       ];
       render(<Scorecard holes={holes} courseHandicap={22} roundSummary={makeRoundSummary()} />);
 
-      expect(screen.getByTestId('scorecard-brutto-stat').props.children).toBe('51 / 99');
+      expect(screen.getByTestId('scorecard-brutto-stat').props.children).toBe('51 / 95');
     });
 
     it('hides the formula breakdown until the summary is tapped, then shows it', () => {

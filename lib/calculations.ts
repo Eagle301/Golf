@@ -46,9 +46,11 @@ export function calculateGir(score: number, putts: number, par: number): boolean
  * For a 9-hole round, the stored Course Rating/Slope are the full 18-hole
  * (played-twice) values, so the played 9-hole score can't be compared
  * against them directly. Instead, the actual (brutto) score is combined
- * with an expected score for the unplayed nine - the player's net par for
- * that same nine plus 1 - then compared against the un-halved 18-hole
- * rating like a normal 18-hole round.
+ * with an expected score for the unplayed nine (see calculateNetParForNine)
+ * then compared against the un-halved 18-hole rating like a normal 18-hole
+ * round. Reverse-engineered against a real GSÍ (Icelandic golf federation)
+ * scoring export: 11/11 real 9-hole rounds on the same tee matched
+ * brutto + calculateNetParForNine(...) exactly, with no further adjustment.
  */
 export function calculateRoundDifferential(score: number, courseRating: number, slopeRating: number, holeCount?: 18): number;
 export function calculateRoundDifferential(
@@ -65,7 +67,7 @@ export function calculateRoundDifferential(
   holeCount: 9 | 18 = 18,
   netParForNineHoles?: number
 ): number {
-  const combinedScore = holeCount === 9 ? score + (netParForNineHoles as number) + 1 : score;
+  const combinedScore = holeCount === 9 ? score + (netParForNineHoles as number) : score;
   return (combinedScore - courseRating) * (113 / slopeRating);
 }
 
@@ -133,18 +135,20 @@ export function calculateTotalNetPar(
 }
 
 /**
- * Net par for the nine actually played, used as the "expected score for the
- * unplayed nine" stand-in in calculateRoundDifferential's 9-hole path.
+ * Expected score for the unplayed nine, used in calculateRoundDifferential's
+ * 9-hole path to build an 18-hole-equivalent combined score.
  *
- * Since a 9-hole round's Course Handicap is computed against the full,
- * played-twice 18-hole par (see calculateCourseHandicap), half of it is the
- * fair share of strokes due for playing these 9 holes once - rather than
- * summing each hole's own stroke-index allocation, which is scaled for
- * distributing strokes across a full 18 stroke indices, not 9.
+ * Uses the player's raw Handicap Index (not Course Handicap, and not a
+ * per-hole stroke-index allocation) - par for the nine plus half the
+ * Handicap Index, rounded up. Reverse-engineered against a real GSÍ
+ * (Icelandic golf federation) scoring export: this matched the official
+ * "Corrected brutto score" on 11/11 real 9-hole rounds played on the same
+ * tee, across Handicap Index values from 26.2 to 27.1 (all landing on the
+ * same ceil(hcp/2) = 14).
  */
-export function calculateNetParForNine(totalPar: number, courseHandicap: number | null): number {
-  if (courseHandicap === null) return totalPar;
-  return totalPar + Math.round(courseHandicap / 2);
+export function calculateNetParForNine(totalPar: number, handicapIndex: number | null): number {
+  if (handicapIndex === null) return totalPar;
+  return totalPar + Math.ceil(handicapIndex / 2);
 }
 
 /**

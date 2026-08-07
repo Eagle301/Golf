@@ -157,7 +157,7 @@ export default function LiveRoundScreen() {
                 9,
                 calculateNetParForNine(
                   finalHoleLogs.reduce((sum, h) => sum + h.par, 0),
-                  courseHandicap
+                  activeRound.handicap_at_start
                 )
               )
             : calculateRoundDifferential(bruttoScore, activeRound.course_rating, activeRound.slope_rating, 18)
