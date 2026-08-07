@@ -213,7 +213,7 @@ export function Scorecard({ holes, courseHandicap, onSelectHole, roundSummary }:
       ? holes.reduce((sum, h) => sum + (points(h, courseHandicap, holeCount) ?? 0), 0)
       : null;
   const bruttoTotal = allScored ? calculateBruttoScore(holes, courseHandicap, holeCount) : null;
-  const netParForNine = isNineHoles ? calculateNetParForNine(totalPar, roundSummary?.handicapIndex ?? null) : null;
+  const netParForNine = isNineHoles ? calculateNetParForNine(totalPar, courseHandicap) : null;
   const bruttoCorrectedForEighteen =
     bruttoTotal !== null && netParForNine !== null ? bruttoTotal + netParForNine : null;
 

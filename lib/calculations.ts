@@ -48,9 +48,10 @@ export function calculateGir(score: number, putts: number, par: number): boolean
  * against them directly. Instead, the actual (brutto) score is combined
  * with an expected score for the unplayed nine (see calculateNetParForNine)
  * then compared against the un-halved 18-hole rating like a normal 18-hole
- * round. Reverse-engineered against a real GSÍ (Icelandic golf federation)
- * scoring export: 11/11 real 9-hole rounds on the same tee matched
- * brutto + calculateNetParForNine(...) exactly, with no further adjustment.
+ * round. Verified against real GSÍ (Icelandic golf federation) scoring
+ * exports across two different courses (Course Handicaps 22, 26, and 27):
+ * brutto + calculateNetParForNine(...) matched the official "Corrected
+ * brutto score" exactly on all of them, with no further adjustment.
  */
 export function calculateRoundDifferential(score: number, courseRating: number, slopeRating: number, holeCount?: 18): number;
 export function calculateRoundDifferential(
@@ -138,17 +139,20 @@ export function calculateTotalNetPar(
  * Expected score for the unplayed nine, used in calculateRoundDifferential's
  * 9-hole path to build an 18-hole-equivalent combined score.
  *
- * Uses the player's raw Handicap Index (not Course Handicap, and not a
- * per-hole stroke-index allocation) - par for the nine plus half the
- * Handicap Index, rounded up. Reverse-engineered against a real GSÍ
- * (Icelandic golf federation) scoring export: this matched the official
- * "Corrected brutto score" on 11/11 real 9-hole rounds played on the same
- * tee, across Handicap Index values from 26.2 to 27.1 (all landing on the
- * same ceil(hcp/2) = 14).
+ * Par for the nine, plus half the Course Handicap (rounded down) plus one.
+ * Uses Course Handicap, not the raw Handicap Index - two rounds with the
+ * same Handicap Index but different courses need different values here
+ * (confirmed with real data: HCP 26.7 on a Course Handicap of 27 needs +14,
+ * but the same 26.7 on a different course with Course Handicap 22 needs
+ * +12 - only Course Handicap explains both). The floor-then-plus-one (not
+ * round-then-plus-one) matters for odd Course Handicaps: round(27/2) = 14
+ * overshoots, but floor(27/2) + 1 = 14 is correct. Verified exact against a
+ * real GSÍ (Icelandic golf federation) scoring export across two different
+ * courses (Course Handicaps 22, 26, and 27).
  */
-export function calculateNetParForNine(totalPar: number, handicapIndex: number | null): number {
-  if (handicapIndex === null) return totalPar;
-  return totalPar + Math.ceil(handicapIndex / 2);
+export function calculateNetParForNine(totalPar: number, courseHandicap: number | null): number {
+  if (courseHandicap === null) return totalPar;
+  return totalPar + Math.floor(courseHandicap / 2) + 1;
 }
 
 /**

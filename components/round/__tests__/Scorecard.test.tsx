@@ -179,20 +179,19 @@ describe('Scorecard', () => {
     });
 
     it('for a 9-hole round, shows the brutto score as (brutto)/(brutto corrected for 18 holes)', () => {
-      // 9 holes, no course handicap -> net par = par, cap = par + 2.
+      // 9 holes, no course handicap -> netParForNine falls back to plain par.
       // par 4 x9 = 36 par total; scores 5 each -> under cap (6) -> brutto = 45.
-      // corrected for 18 = brutto + (par 36 + ceil(handicapIndex 14.3 / 2) = 8) = 89.
+      // corrected for 18 = brutto (45) + par (36) = 81.
       const holes = Array.from({ length: 9 }, (_, i) => makeHole({ hole_number: i + 1, par: 4, score: 5, putts: 2 }));
       render(<Scorecard holes={holes} courseHandicap={null} roundSummary={makeRoundSummary()} />);
 
-      expect(screen.getByTestId('scorecard-brutto-stat').props.children).toBe('45 / 89');
+      expect(screen.getByTestId('scorecard-brutto-stat').props.children).toBe('45 / 81');
     });
 
-    it('for a 9-hole round, corrects for 18 using par + half the Handicap Index (not the course handicap or per-hole stroke index)', () => {
-      // Husafell round: courseHandicap 22 is used only for per-hole net-double-bogey
-      // capping (still yields brutto = 51, verified against real caps) - the
-      // "expected other nine" uses roundSummary.handicapIndex (14.3) instead:
-      // netParForNine = 36 + ceil(14.3/2) = 36 + 8 = 44.
+    it('for a 9-hole round, corrects for 18 using par + half the course handicap (rounded down) plus one', () => {
+      // Real Husafell round (courseHandicap 22, verified against GSÍ official
+      // export): netParForNine = 36 + floor(22/2) + 1 = 36 + 11 + 1 = 48.
+      // Per-hole stroke-index net-par capping still yields brutto = 51.
       const holes = [
         makeHole({ hole_number: 1, stroke_index: 9, par: 4, score: 5, putts: 2 }),
         makeHole({ hole_number: 2, stroke_index: 8, par: 5, score: 8, putts: 2 }),
@@ -206,7 +205,7 @@ describe('Scorecard', () => {
       ];
       render(<Scorecard holes={holes} courseHandicap={22} roundSummary={makeRoundSummary()} />);
 
-      expect(screen.getByTestId('scorecard-brutto-stat').props.children).toBe('51 / 95');
+      expect(screen.getByTestId('scorecard-brutto-stat').props.children).toBe('51 / 99');
     });
 
     it('hides the formula breakdown until the summary is tapped, then shows it', () => {

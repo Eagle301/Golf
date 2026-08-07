@@ -174,18 +174,20 @@ describe('calculateNetPar / calculateTotalNetPar', () => {
 });
 
 describe('calculateNetParForNine', () => {
-  it('adds half the Handicap Index (rounded up) to the par of the nine actually played', () => {
-    // Real GSÍ export: totalPar 34, Handicap Index 26.4-27.1 -> ceil(hcp/2) = 14 -> 34 + 14 = 48
-    expect(calculateNetParForNine(34, 26.4)).toBe(48);
-    expect(calculateNetParForNine(34, 27.1)).toBe(48);
+  it('adds half the Course Handicap (rounded down) plus one to the par of the nine actually played', () => {
+    // Real GSÍ export, Mýrin: totalPar 34, Course Handicap 26 or 27 -> floor(CH/2)+1 = 14 either way -> 48
+    expect(calculateNetParForNine(34, 26)).toBe(48);
+    expect(calculateNetParForNine(34, 27)).toBe(48);
+    // Real GSÍ export, Húsafell: totalPar 36, Course Handicap 22 -> floor(22/2)+1 = 12 -> 48
+    expect(calculateNetParForNine(36, 22)).toBe(48);
   });
 
-  it('rounds a half-Handicap-Index up, not to the nearest whole number', () => {
-    expect(calculateNetParForNine(36, 23)).toBe(36 + 12); // 23/2 = 11.5 -> ceils to 12
-    expect(calculateNetParForNine(36, 22)).toBe(36 + 11); // 22/2 = 11 exactly -> stays 11
+  it('floors an odd Course Handicap half instead of rounding it up', () => {
+    expect(calculateNetParForNine(36, 23)).toBe(36 + 12); // floor(23/2) = 11, +1 = 12
+    expect(calculateNetParForNine(36, 22)).toBe(36 + 12); // floor(22/2) = 11, +1 = 12
   });
 
-  it('falls back to plain par with no handicap index', () => {
+  it('falls back to plain par with no course handicap', () => {
     expect(calculateNetParForNine(36, null)).toBe(36);
   });
 });
