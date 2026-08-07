@@ -8,6 +8,9 @@ export interface ButtonProps extends Omit<PressableProps, 'children'> {
   testID?: string;
   /** Extra classes for the button's container (e.g. flex-1, margins). */
   containerClassName?: string;
+  /** Extra classes for the label, appended last so they win (e.g. text-xs
+   * where a narrow button would otherwise wrap its label). */
+  textClassName?: string;
 }
 
 const CONTAINER: Record<ButtonVariant, string> = {
@@ -48,6 +51,7 @@ export function Button({
   variant = 'primary',
   disabled,
   containerClassName,
+  textClassName,
   testID,
   ...pressableProps
 }: ButtonProps) {
@@ -62,7 +66,7 @@ export function Button({
     <Pressable testID={testID} disabled={disabled} className={containerClassName} {...pressableProps}>
       {({ pressed }) => (
         <View className={`w-full items-center ${container} ${pressed && !disabled ? 'opacity-60' : ''}`}>
-          <Text className={text}>{label}</Text>
+          <Text className={`${text} ${textClassName ?? ''}`}>{label}</Text>
         </View>
       )}
     </Pressable>

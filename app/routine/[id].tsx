@@ -150,15 +150,19 @@ export default function RoutineFormScreen() {
       />
 
       <Text className="mb-1 text-sm font-medium text-text-primary dark:text-text-primary-dark">Category</Text>
-      <View className="mb-4 flex-row flex-wrap gap-2">
+      {/* One row, a quarter of the width each. The labels only fit at that
+          width at text-xs - "Short Game" wraps at the default size. */}
+      <View className="mb-4 flex-row">
         {TRAINING_CATEGORIES.map((cat) => (
-          <Button
-            key={cat}
-            testID={`category-${cat}`}
-            label={TRAINING_CATEGORY_LABELS[cat]}
-            variant={category === cat ? 'primary' : 'secondary'}
-            onPress={() => setCategory(cat)}
-          />
+          <View key={cat} className="w-1/4 px-1">
+            <Button
+              testID={`category-${cat}`}
+              label={TRAINING_CATEGORY_LABELS[cat]}
+              variant={category === cat ? 'primary' : 'secondary'}
+              onPress={() => setCategory(cat)}
+              textClassName="text-xs"
+            />
+          </View>
         ))}
       </View>
 

@@ -33,6 +33,24 @@ describe('RoutineFormScreen', () => {
     (useRouter as jest.Mock).mockReturnValue({ push, back });
   });
 
+  it('lays the four category buttons out a quarter of the width each, in one row', () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ id: 'new' });
+    (useRoutinesModule.useRoutine as jest.Mock).mockReturnValue({
+      routine: { id: null, name: '', description: null, category: 'putts' },
+      drills: [],
+      loading: false,
+      error: null,
+    });
+
+    const { toJSON } = render(<RoutineFormScreen />);
+
+    for (const cat of ['putts', 'short_game', 'full_swing', 'strategy']) {
+      expect(screen.getByTestId(`category-${cat}`)).toBeTruthy();
+    }
+    // Four quarter-width cells: one row that spans the full content width.
+    expect(JSON.stringify(toJSON()).match(/w-1\/4 px-1/g)).toHaveLength(4);
+  });
+
   it('disables Save until name and at least one named drill are present', () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ id: 'new' });
     (useRoutinesModule.useRoutine as jest.Mock).mockReturnValue({

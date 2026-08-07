@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { View, Text, ScrollView, Image, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { ExpandablePhoto } from '@/components/ui/ExpandablePhoto';
 import { HeaderBackButton } from '@/components/ui/HeaderBackButton';
 import { useTrainingSession, deleteTrainingSession } from '@/lib/hooks/useTrainingSession';
 
@@ -51,7 +52,15 @@ export default function SessionDetailScreen() {
               testID={`session-detail-drill-${drill.drill_id}`}
               className="mb-3 flex-row items-center rounded-xl border border-gray-200 p-3 dark:border-border-dark dark:bg-surface-dark"
             >
-              {drill.photo_url && <Image source={{ uri: drill.photo_url }} className="mr-3 h-12 w-12 rounded-lg" />}
+              {drill.photo_url && (
+                <View className="mr-3">
+                  <ExpandablePhoto
+                    uri={drill.photo_url}
+                    className="h-12 w-12 rounded-lg"
+                    testID={`session-detail-drill-${drill.drill_id}-photo`}
+                  />
+                </View>
+              )}
               <View className="flex-1">
                 <Text className="text-sm font-medium text-text-primary dark:text-text-primary-dark">
                   {drill.name}

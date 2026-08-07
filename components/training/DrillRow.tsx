@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { View, Text, TextInput, Pressable, Image, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, Pressable, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { ExpandablePhoto } from '@/components/ui/ExpandablePhoto';
 import type { DrillInput } from '@/lib/hooks/useRoutines';
 import type { PhotoSource } from '@/lib/training/drillPhotos';
 
@@ -62,14 +63,20 @@ export function DrillRow({ drill, onChange, onRemove, onMoveUp, onMoveDown, onPi
       <View className="mt-2 flex-row items-center">
         {drill.photo_url ? (
           <View className="mr-3">
-            <Image source={{ uri: drill.photo_url }} className="h-14 w-14 rounded-lg" testID={`${testIDPrefix}-photo`} />
-            <Pressable
-              testID={`${testIDPrefix}-remove-photo`}
-              onPress={() => onChange({ ...drill, photo_url: null })}
-              className="absolute -right-2 -top-2 h-5 w-5 items-center justify-center rounded-full bg-gray-700"
-            >
-              <Ionicons name="close" size={12} color="white" />
-            </Pressable>
+            <ExpandablePhoto
+              uri={drill.photo_url}
+              className="h-14 w-14 rounded-lg"
+              testID={`${testIDPrefix}-photo`}
+              overlay={
+                <Pressable
+                  testID={`${testIDPrefix}-remove-photo`}
+                  onPress={() => onChange({ ...drill, photo_url: null })}
+                  className="absolute -right-2 -top-2 h-5 w-5 items-center justify-center rounded-full bg-gray-700"
+                >
+                  <Ionicons name="close" size={12} color="white" />
+                </Pressable>
+              }
+            />
           </View>
         ) : uploading ? (
           <View className="mr-3 h-14 w-14 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800">

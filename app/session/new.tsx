@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { View, Text, TextInput, ScrollView, Image, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, ScrollView, ActivityIndicator } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Button } from '@/components/ui/Button';
+import { ExpandablePhoto } from '@/components/ui/ExpandablePhoto';
 import { HeaderBackButton } from '@/components/ui/HeaderBackButton';
 import { useRoutine } from '@/lib/hooks/useRoutines';
 import { saveTrainingSession } from '@/lib/hooks/useTrainingSession';
@@ -78,7 +79,13 @@ export default function NewSessionScreen() {
         >
           <View className="flex-row items-center">
             {drill.photo_url && (
-              <Image source={{ uri: drill.photo_url }} className="mr-3 h-12 w-12 rounded-lg" />
+              <View className="mr-3">
+                <ExpandablePhoto
+                  uri={drill.photo_url}
+                  className="h-12 w-12 rounded-lg"
+                  testID={`session-drill-${drill.id}-photo`}
+                />
+              </View>
             )}
             <View className="flex-1">
               <Text className="text-sm font-medium text-text-primary dark:text-text-primary-dark">{drill.name}</Text>
