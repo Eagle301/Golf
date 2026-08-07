@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { View, Text, ScrollView, Image, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { HeaderBackButton } from '@/components/ui/HeaderBackButton';
 import { useTrainingSession, deleteTrainingSession } from '@/lib/hooks/useTrainingSession';
 
 export default function SessionDetailScreen() {
@@ -100,16 +100,7 @@ export default function SessionDetailScreen() {
     <>
       <Stack.Screen
         options={{
-          headerLeft: () => (
-            <Pressable
-              testID="header-back-button"
-              onPress={() => (router.canGoBack() ? router.back() : router.replace('/training'))}
-              className="ml-2"
-              hitSlop={8}
-            >
-              <Ionicons name="chevron-back" color="#FFFFFF" size={26} />
-            </Pressable>
-          ),
+          headerLeft: () => <HeaderBackButton fallback="/training" />,
         }}
       />
       {body}

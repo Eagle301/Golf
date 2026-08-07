@@ -242,11 +242,16 @@ export function averageScoreByPar(
  * share of all fairway attempts that were missed short/long, which aren't a
  * left/right miss and so are kept out of the L/H/R split entirely rather
  * than distorting it.
+ *
+ * Par 3s are dropped before anything else: they're played tee-to-green, so
+ * there's no fairway to hit. Rounds recorded before the entry screen stopped
+ * offering the choice on a par 3 can still carry a value there, and it must
+ * not count - not even towards the attempt total naPct divides by.
  */
 export function fairwayDistribution(
-  holeLogs: { fairway_hit: FairwayHit | null }[]
+  holeLogs: { fairway_hit: FairwayHit | null; par: number }[]
 ): { leftPct: number; hitPct: number; rightPct: number; naPct: number } {
-  const attempted = holeLogs.filter((h) => h.fairway_hit !== null);
+  const attempted = holeLogs.filter((h) => h.par !== 3 && h.fairway_hit !== null);
   if (attempted.length === 0) return { leftPct: 0, hitPct: 0, rightPct: 0, naPct: 0 };
 
   const eligible = attempted.filter(

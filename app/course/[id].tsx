@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TextInput, ScrollView, Pressable, ActivityIndicator } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { View, Text, TextInput, ScrollView, ActivityIndicator } from 'react-native';
+import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { HoleRow } from '@/components/course/HoleRow';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Button } from '@/components/ui/Button';
+import { HeaderBackButton } from '@/components/ui/HeaderBackButton';
 import {
   useCourse,
   saveCourse,
@@ -146,113 +147,124 @@ export default function CourseFormScreen() {
     }
   }
 
+  let body: React.ReactNode;
+
   if (loading) {
-    return (
+    body = (
       <View className="flex-1 items-center justify-center bg-background dark:bg-background-dark">
         <ActivityIndicator testID="course-form-loading" />
       </View>
     );
-  }
-
-  if (loadError) {
-    return (
+  } else if (loadError) {
+    body = (
       <View className="flex-1 items-center justify-center bg-background px-6 dark:bg-background-dark">
         <Text className="text-center text-red-600">{loadError}</Text>
       </View>
     );
+  } else {
+    body = (
+      <ScrollView className="flex-1 bg-background px-4 pt-4 dark:bg-background-dark" testID="course-form">
+        <Text className="mb-1 text-sm font-medium text-text-primary dark:text-text-primary-dark">Course name</Text>
+        <TextInput
+          testID="course-name-input"
+          className="mb-4 rounded border border-gray-300 px-3 py-2 text-text-primary dark:border-border-dark dark:bg-surface-dark dark:text-text-primary-dark"
+          value={name}
+          onChangeText={setName}
+          placeholder="e.g. Pebble Beach"
+        />
+
+        <View className="mb-4 flex-row">
+          <View className="mr-3 flex-1">
+            <Text className="mb-1 text-sm font-medium text-text-primary dark:text-text-primary-dark">
+              Course Rating
+            </Text>
+            <TextInput
+              testID="course-rating-input"
+              className="rounded border border-gray-300 px-3 py-2 text-text-primary dark:border-border-dark dark:bg-surface-dark dark:text-text-primary-dark"
+              keyboardType="decimal-pad"
+              value={courseRating}
+              onChangeText={setCourseRating}
+              placeholder="e.g. 72.5"
+            />
+          </View>
+          <View className="flex-1">
+            <Text className="mb-1 text-sm font-medium text-text-primary dark:text-text-primary-dark">
+              Slope Rating
+            </Text>
+            <TextInput
+              testID="slope-rating-input"
+              className="rounded border border-gray-300 px-3 py-2 text-text-primary dark:border-border-dark dark:bg-surface-dark dark:text-text-primary-dark"
+              keyboardType="number-pad"
+              value={slopeRating}
+              onChangeText={setSlopeRating}
+              placeholder="e.g. 130"
+            />
+          </View>
+        </View>
+
+        <Text className="mb-1 text-sm font-medium text-text-primary dark:text-text-primary-dark">Holes</Text>
+        <View className="mb-4 flex-row gap-3">
+          {HOLE_COUNT_OPTIONS.map((count) => (
+            <Button
+              key={count}
+              testID={`hole-count-${count}`}
+              label={String(count)}
+              variant={holeCount === count ? 'primary' : 'secondary'}
+              onPress={() => changeHoleCount(count)}
+              containerClassName="flex-1"
+            />
+          ))}
+        </View>
+
+        {holes.map((hole) => (
+          <HoleRow key={hole.hole_number} hole={hole} onChange={updateHole} />
+        ))}
+
+        <Text className="my-3 text-sm text-text-secondary dark:text-text-secondary-dark">
+          Total par {totalPar} · {totalLength} m
+        </Text>
+
+        {saveError && <Text className="mb-3 text-red-600">{saveError}</Text>}
+
+        <Button
+          testID="save-course-button"
+          label={saving ? 'Saving...' : 'Save'}
+          variant="primary"
+          disabled={!isValid || saving}
+          onPress={handleSave}
+          containerClassName="mb-3"
+        />
+
+        {course.id && (
+          <Button
+            testID="delete-course-button"
+            label="Delete Course"
+            variant="destructive"
+            onPress={handleDelete}
+            containerClassName="mb-8"
+          />
+        )}
+
+        <ConfirmDialog
+          visible={deleteModalOpen}
+          title="Delete course?"
+          message="This cannot be undone."
+          confirmLabel="Delete"
+          onCancel={() => setDeleteModalOpen(false)}
+          onConfirm={confirmDelete}
+        />
+      </ScrollView>
+    );
   }
 
   return (
-    <ScrollView className="flex-1 bg-background px-4 pt-4 dark:bg-background-dark" testID="course-form">
-      <Text className="mb-1 text-sm font-medium text-text-primary dark:text-text-primary-dark">Course name</Text>
-      <TextInput
-        testID="course-name-input"
-        className="mb-4 rounded border border-gray-300 px-3 py-2 text-text-primary dark:border-border-dark dark:bg-surface-dark dark:text-text-primary-dark"
-        value={name}
-        onChangeText={setName}
-        placeholder="e.g. Pebble Beach"
+    <>
+      <Stack.Screen
+        options={{
+          headerLeft: () => <HeaderBackButton fallback="/courses" />,
+        }}
       />
-
-      <View className="mb-4 flex-row">
-        <View className="mr-3 flex-1">
-          <Text className="mb-1 text-sm font-medium text-text-primary dark:text-text-primary-dark">
-            Course Rating
-          </Text>
-          <TextInput
-            testID="course-rating-input"
-            className="rounded border border-gray-300 px-3 py-2 text-text-primary dark:border-border-dark dark:bg-surface-dark dark:text-text-primary-dark"
-            keyboardType="decimal-pad"
-            value={courseRating}
-            onChangeText={setCourseRating}
-            placeholder="e.g. 72.5"
-          />
-        </View>
-        <View className="flex-1">
-          <Text className="mb-1 text-sm font-medium text-text-primary dark:text-text-primary-dark">
-            Slope Rating
-          </Text>
-          <TextInput
-            testID="slope-rating-input"
-            className="rounded border border-gray-300 px-3 py-2 text-text-primary dark:border-border-dark dark:bg-surface-dark dark:text-text-primary-dark"
-            keyboardType="number-pad"
-            value={slopeRating}
-            onChangeText={setSlopeRating}
-            placeholder="e.g. 130"
-          />
-        </View>
-      </View>
-
-      <Text className="mb-1 text-sm font-medium text-text-primary dark:text-text-primary-dark">Holes</Text>
-      <View className="mb-4 flex-row gap-3">
-        {HOLE_COUNT_OPTIONS.map((count) => (
-          <Button
-            key={count}
-            testID={`hole-count-${count}`}
-            label={String(count)}
-            variant={holeCount === count ? 'primary' : 'secondary'}
-            onPress={() => changeHoleCount(count)}
-            containerClassName="flex-1"
-          />
-        ))}
-      </View>
-
-      {holes.map((hole) => (
-        <HoleRow key={hole.hole_number} hole={hole} onChange={updateHole} />
-      ))}
-
-      <Text className="my-3 text-sm text-text-secondary dark:text-text-secondary-dark">
-        Total par {totalPar} · {totalLength} m
-      </Text>
-
-      {saveError && <Text className="mb-3 text-red-600">{saveError}</Text>}
-
-      <Button
-        testID="save-course-button"
-        label={saving ? 'Saving...' : 'Save'}
-        variant="primary"
-        disabled={!isValid || saving}
-        onPress={handleSave}
-        containerClassName="mb-3"
-      />
-
-      {course.id && (
-        <Button
-          testID="delete-course-button"
-          label="Delete Course"
-          variant="destructive"
-          onPress={handleDelete}
-          containerClassName="mb-8"
-        />
-      )}
-
-      <ConfirmDialog
-        visible={deleteModalOpen}
-        title="Delete course?"
-        message="This cannot be undone."
-        confirmLabel="Delete"
-        onCancel={() => setDeleteModalOpen(false)}
-        onConfirm={confirmDelete}
-      />
-    </ScrollView>
+      {body}
+    </>
   );
 }

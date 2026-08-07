@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TextInput, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, ScrollView, ActivityIndicator } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { DrillRow } from '@/components/training/DrillRow';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Button } from '@/components/ui/Button';
+import { HeaderBackButton } from '@/components/ui/HeaderBackButton';
 import { supabase } from '@/lib/supabase';
 import { pickDrillPhoto, uploadDrillPhoto, type PhotoSource } from '@/lib/training/drillPhotos';
 import { TRAINING_CATEGORIES, TRAINING_CATEGORY_LABELS } from '@/lib/training/categories';
@@ -222,16 +222,7 @@ export default function RoutineFormScreen() {
       <Stack.Screen
         options={{
           title: routine.id ? 'Edit Routine' : 'New Routine',
-          headerLeft: () => (
-            <Pressable
-              testID="header-back-button"
-              onPress={() => (router.canGoBack() ? router.back() : router.replace('/training'))}
-              className="ml-2"
-              hitSlop={8}
-            >
-              <Ionicons name="chevron-back" color="#FFFFFF" size={26} />
-            </Pressable>
-          ),
+          headerLeft: () => <HeaderBackButton fallback="/training" />,
         }}
       />
       {body}

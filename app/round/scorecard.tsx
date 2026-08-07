@@ -1,20 +1,30 @@
 import { useState } from 'react';
 import { View, Text, ScrollView, ActivityIndicator } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Scorecard } from '@/components/round/Scorecard';
 import { useActiveRound } from '@/lib/hooks/useActiveRound';
 import { useRoundDetail, deleteRound } from '@/lib/hooks/useRoundDetail';
 import { calculateCourseHandicap, calculateNetParDiff, formatRelativeToPar } from '@/lib/calculations';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Button } from '@/components/ui/Button';
+import { HeaderBackButton } from '@/components/ui/HeaderBackButton';
 
 export default function ScorecardScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const isActive = id === 'active';
 
-  if (id === 'active') {
-    return <ActiveRoundScorecard />;
-  }
-  return <HistoricalRoundScorecard roundId={id} />;
+  // Mounted out here rather than inside the two variants below so the back
+  // button survives their loading/empty/error branches too.
+  return (
+    <>
+      <Stack.Screen
+        options={{
+          headerLeft: () => <HeaderBackButton fallback={isActive ? '/round/active' : '/rounds'} />,
+        }}
+      />
+      {isActive ? <ActiveRoundScorecard /> : <HistoricalRoundScorecard roundId={id} />}
+    </>
+  );
 }
 
 function ActiveRoundScorecard() {

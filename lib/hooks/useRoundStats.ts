@@ -80,7 +80,9 @@ export function useRoundStats(): UseRoundStatsResult {
       averageScore: averageEighteenHoleScore(
         roundRows.map((r) => ({ total_score: r.total_score, hole_count: r.courses?.hole_count ?? 18 }))
       ),
-      fairwayDistribution: fairwayDistribution(holeLogRows.map((h) => ({ fairway_hit: h.fairway_hit }))),
+      fairwayDistribution: fairwayDistribution(
+        holeLogRows.map((h) => ({ fairway_hit: h.fairway_hit, par: h.holes?.par ?? 0 }))
+      ),
       girPercentage: girPercentage(holeLogRows.map((h) => ({ gir: h.gir }))),
       scoreByPar: averageScoreByPar(holeLogRows.map((h) => ({ par: h.holes?.par ?? 0, score: h.score }))),
       scoringCategoryAverages: averageScoringCategoriesPerRound(

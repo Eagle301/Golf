@@ -1,6 +1,7 @@
 jest.mock('expo-router', () => ({
   useLocalSearchParams: jest.fn(),
   useRouter: jest.fn(),
+  Stack: { Screen: () => null },
 }));
 jest.mock('@/lib/hooks/useCourses', () => ({
   useCourse: jest.fn(),

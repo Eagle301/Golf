@@ -214,6 +214,42 @@ describe('LiveRoundScreen review panel', () => {
     // CHC=1 gives hole 1 a stroke -> net score 4-1=3, par 4 -> net birdie -> 3 points.
     expect(screen.getByTestId('hole-points-badge').props.children).toBe('³');
   });
+
+  it('offers the fairway choice on a par 4', () => {
+    (useActiveRound as jest.Mock).mockReturnValue({
+      activeRound: makeActiveRound({ currentHoleIndex: 0 }), // hole 1 is a par 4
+      loading: false,
+      updateActiveRound,
+      discardActiveRound,
+      refetch,
+    });
+
+    render(<LiveRoundScreen />);
+
+    expect(screen.getByTestId('fairway-yes')).toBeTruthy();
+    expect(screen.getByTestId('fairway-no')).toBeTruthy();
+  });
+
+  it('hides the fairway choice on a par 3, which has no fairway to hit', () => {
+    const activeRound = makeActiveRound({ currentHoleIndex: 0 });
+    activeRound.holeLogs[0] = { ...activeRound.holeLogs[0], par: 3 };
+
+    (useActiveRound as jest.Mock).mockReturnValue({
+      activeRound,
+      loading: false,
+      updateActiveRound,
+      discardActiveRound,
+      refetch,
+    });
+
+    render(<LiveRoundScreen />);
+
+    expect(screen.queryByTestId('fairway-yes')).toBeNull();
+    expect(screen.queryByTestId('fairway-no')).toBeNull();
+    // The rest of the hole is still recordable.
+    expect(screen.getByTestId('gir-toggle')).toBeTruthy();
+    expect(screen.getByTestId('putts-2')).toBeTruthy();
+  });
 });
 
 describe('LiveRoundScreen submission validation', () => {

@@ -69,7 +69,6 @@ async function runSync(): Promise<void> {
         putts: h.putts,
         fairway_hit: h.fairway_hit,
         gir: h.gir,
-        gir_overridden: h.gir_overridden,
         penalties: h.penalties,
         chip_shots: h.chip_shots,
       }))

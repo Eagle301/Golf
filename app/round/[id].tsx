@@ -1,7 +1,6 @@
 import { useCallback, useState } from 'react';
 import { View, Text, TextInput, ScrollView, Pressable, ActivityIndicator, Modal } from 'react-native';
 import { useRouter, useFocusEffect, Stack } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useActiveRound } from '@/lib/hooks/useActiveRound';
 import { useParIndicatorPreference } from '@/lib/hooks/useParIndicatorPreference';
 import { syncPendingRounds } from '@/lib/hooks/useRoundSync';
@@ -20,6 +19,7 @@ import {
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { HeaderBackButton } from '@/components/ui/HeaderBackButton';
 import { RoundOverviewScorecard } from '@/components/round/RoundOverviewScorecard';
 import { Scorecard } from '@/components/round/Scorecard';
 import type { HoleLogEntry } from '@/lib/offline/types';
@@ -451,94 +451,102 @@ export default function LiveRoundScreen() {
             ))}
           </View>
 
-          <Text className="mb-1 text-sm font-medium text-text-primary dark:text-text-primary-dark">
-            Fairway
-          </Text>
-          <View className="mb-3 flex-row">
-            <Pressable
-              testID="fairway-yes"
-              onPress={() => updateHole({ ...hole, fairway_hit: 'yes' })}
-              className={`mr-1.5 flex-1 items-center rounded-xl py-3.5 ${
-                hole.fairway_hit === 'yes'
-                  ? 'bg-brand dark:bg-accent-gold-dark'
-                  : 'bg-gray-200 dark:bg-gray-700'
-              }`}
-            >
-              <Text
-                className={`font-medium ${
-                  hole.fairway_hit === 'yes'
-                    ? 'text-white dark:text-gray-900'
-                    : 'text-text-primary dark:text-text-primary-dark'
-                }`}
-              >
-                Yes
+          {/* A par 3 is played from tee to green, so there's no fairway to
+              hit or miss - the stat would be meaningless. */}
+          {hole.par !== 3 && (
+            <>
+              <Text className="mb-1 text-sm font-medium text-text-primary dark:text-text-primary-dark">
+                Fairway
               </Text>
-            </Pressable>
-            <Pressable
-              testID="fairway-no"
-              onPress={() => setMissModalOpen(true)}
-              className={`ml-1.5 flex-1 items-center rounded-xl py-3.5 ${
-                fairwayIsNo ? 'bg-brand dark:bg-accent-gold-dark' : 'bg-gray-200 dark:bg-gray-700'
-              }`}
-            >
-              <Text
-                className={`font-medium ${
-                  fairwayIsNo
-                    ? 'text-white dark:text-gray-900'
-                    : 'text-text-primary dark:text-text-primary-dark'
-                }`}
-              >
-                {fairwayIsNo
-                  ? `No (${MISS_OPTIONS.find((o) => o.value === hole.fairway_hit)?.label})`
-                  : 'No'}
-              </Text>
-            </Pressable>
-          </View>
-
-          <Modal
-            visible={missModalOpen}
-            transparent
-            animationType="fade"
-            onRequestClose={() => setMissModalOpen(false)}
-          >
-            <Pressable
-              testID="miss-modal-backdrop"
-              className="flex-1 items-center justify-center bg-black/50"
-              onPress={() => setMissModalOpen(false)}
-            >
-              <Card className="w-72 p-4">
-                <Text className="mb-3 text-center text-base font-medium text-text-primary dark:text-text-primary-dark">
-                  Missed which way?
-                </Text>
-                <View className="flex-row">
-                  {MISS_OPTIONS.slice(0, 2).map((opt, i) => (
-                    <Pressable
-                      key={opt.value}
-                      testID={`miss-${opt.value}`}
-                      onPress={() => selectMiss(opt.value)}
-                      className={`flex-1 items-center rounded-xl bg-gray-200 py-4 dark:bg-gray-700 ${
-                        i === 0 ? 'mr-1.5' : 'ml-1.5'
-                      }`}
-                    >
-                      <Text className="font-medium text-text-primary dark:text-text-primary-dark">
-                        {opt.label}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-                {MISS_OPTIONS.slice(2).map((opt) => (
-                  <Pressable
-                    key={opt.value}
-                    testID={`miss-${opt.value}`}
-                    onPress={() => selectMiss(opt.value)}
-                    className="mt-3 items-center rounded-xl bg-gray-200 py-4 dark:bg-gray-700"
+              <View className="mb-3 flex-row">
+                <Pressable
+                  testID="fairway-yes"
+                  onPress={() => updateHole({ ...hole, fairway_hit: 'yes' })}
+                  className={`mr-1.5 flex-1 items-center rounded-xl py-3.5 ${
+                    hole.fairway_hit === 'yes'
+                      ? 'bg-brand dark:bg-accent-gold-dark'
+                      : 'bg-gray-200 dark:bg-gray-700'
+                  }`}
+                >
+                  <Text
+                    className={`font-medium ${
+                      hole.fairway_hit === 'yes'
+                        ? 'text-white dark:text-gray-900'
+                        : 'text-text-primary dark:text-text-primary-dark'
+                    }`}
                   >
-                    <Text className="font-medium text-text-primary dark:text-text-primary-dark">{opt.label}</Text>
-                  </Pressable>
-                ))}
-              </Card>
-            </Pressable>
-          </Modal>
+                    Yes
+                  </Text>
+                </Pressable>
+                <Pressable
+                  testID="fairway-no"
+                  onPress={() => setMissModalOpen(true)}
+                  className={`ml-1.5 flex-1 items-center rounded-xl py-3.5 ${
+                    fairwayIsNo ? 'bg-brand dark:bg-accent-gold-dark' : 'bg-gray-200 dark:bg-gray-700'
+                  }`}
+                >
+                  <Text
+                    className={`font-medium ${
+                      fairwayIsNo
+                        ? 'text-white dark:text-gray-900'
+                        : 'text-text-primary dark:text-text-primary-dark'
+                    }`}
+                  >
+                    {fairwayIsNo
+                      ? `No (${MISS_OPTIONS.find((o) => o.value === hole.fairway_hit)?.label})`
+                      : 'No'}
+                  </Text>
+                </Pressable>
+              </View>
+
+              <Modal
+                visible={missModalOpen}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setMissModalOpen(false)}
+              >
+                <Pressable
+                  testID="miss-modal-backdrop"
+                  className="flex-1 items-center justify-center bg-black/50"
+                  onPress={() => setMissModalOpen(false)}
+                >
+                  <Card className="w-72 p-4">
+                    <Text className="mb-3 text-center text-base font-medium text-text-primary dark:text-text-primary-dark">
+                      Missed which way?
+                    </Text>
+                    <View className="flex-row">
+                      {MISS_OPTIONS.slice(0, 2).map((opt, i) => (
+                        <Pressable
+                          key={opt.value}
+                          testID={`miss-${opt.value}`}
+                          onPress={() => selectMiss(opt.value)}
+                          className={`flex-1 items-center rounded-xl bg-gray-200 py-4 dark:bg-gray-700 ${
+                            i === 0 ? 'mr-1.5' : 'ml-1.5'
+                          }`}
+                        >
+                          <Text className="font-medium text-text-primary dark:text-text-primary-dark">
+                            {opt.label}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                    {MISS_OPTIONS.slice(2).map((opt) => (
+                      <Pressable
+                        key={opt.value}
+                        testID={`miss-${opt.value}`}
+                        onPress={() => selectMiss(opt.value)}
+                        className="mt-3 items-center rounded-xl bg-gray-200 py-4 dark:bg-gray-700"
+                      >
+                        <Text className="font-medium text-text-primary dark:text-text-primary-dark">
+                          {opt.label}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </Card>
+                </Pressable>
+              </Modal>
+            </>
+          )}
 
           <Pressable
             testID="gir-toggle"
@@ -636,16 +644,7 @@ export default function LiveRoundScreen() {
     <>
       <Stack.Screen
         options={{
-          headerLeft: () => (
-            <Pressable
-              testID="header-back-button"
-              onPress={() => (router.canGoBack() ? router.back() : router.replace('/rounds'))}
-              className="ml-2"
-              hitSlop={8}
-            >
-              <Ionicons name="chevron-back" color="#FFFFFF" size={26} />
-            </Pressable>
-          ),
+          headerLeft: () => <HeaderBackButton fallback="/rounds" />,
           headerRight: () => (
             <Pressable
               testID="scorecard-button"

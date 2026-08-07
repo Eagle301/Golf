@@ -29,6 +29,12 @@ export interface HoleLogEntry {
   putts: number | null;
   fairway_hit: FairwayHit | null;
   gir: boolean | null;
+  /**
+   * Local to the round in progress, and deliberately not a database column:
+   * it only exists so a hand-set GIR isn't clobbered when the score or putts
+   * on that hole are edited afterwards. Finishing the round resolves gir to
+   * its final value, after which the flag has nothing left to say.
+   */
   gir_overridden: boolean;
   penalties: number;
   chip_shots: number;

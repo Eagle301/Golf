@@ -311,11 +311,11 @@ describe('averageScoreByPar', () => {
 describe('fairwayDistribution', () => {
   it('computes left/hit/right percentages of eligible attempts, and naPct for missed short/long', () => {
     const holeLogs = [
-      { fairway_hit: 'yes' as const },
-      { fairway_hit: 'yes' as const },
-      { fairway_hit: 'missed_left' as const },
-      { fairway_hit: 'missed_right' as const },
-      { fairway_hit: 'missed_short' as const },
+      { fairway_hit: 'yes' as const, par: 4 },
+      { fairway_hit: 'yes' as const, par: 5 },
+      { fairway_hit: 'missed_left' as const, par: 4 },
+      { fairway_hit: 'missed_right' as const, par: 4 },
+      { fairway_hit: 'missed_short' as const, par: 5 },
     ];
     // 4 eligible (2 yes, 1 left, 1 right) of 5 attempted -> naPct = 1/5 = 20%.
     expect(fairwayDistribution(holeLogs)).toEqual({ leftPct: 25, hitPct: 50, rightPct: 25, naPct: 20 });
@@ -326,8 +326,30 @@ describe('fairwayDistribution', () => {
   });
 
   it('returns 100% naPct when every attempt was missed short/long', () => {
-    const holeLogs = [{ fairway_hit: 'missed_short' as const }, { fairway_hit: 'missed_long' as const }];
+    const holeLogs = [
+      { fairway_hit: 'missed_short' as const, par: 4 },
+      { fairway_hit: 'missed_long' as const, par: 5 },
+    ];
     expect(fairwayDistribution(holeLogs)).toEqual({ leftPct: 0, hitPct: 0, rightPct: 0, naPct: 100 });
+  });
+
+  it('ignores par 3 holes, including ones carrying a value from an older round', () => {
+    const holeLogs = [
+      { fairway_hit: 'yes' as const, par: 4 },
+      { fairway_hit: 'missed_left' as const, par: 4 },
+      { fairway_hit: 'missed_right' as const, par: 3 },
+      { fairway_hit: 'missed_short' as const, par: 3 },
+    ];
+    // Only the two par 4s count: 1 hit, 1 left, nothing missed short/long.
+    expect(fairwayDistribution(holeLogs)).toEqual({ leftPct: 50, hitPct: 50, rightPct: 0, naPct: 0 });
+  });
+
+  it('returns all zeroes when every hole with a value is a par 3', () => {
+    const holeLogs = [
+      { fairway_hit: 'yes' as const, par: 3 },
+      { fairway_hit: 'missed_left' as const, par: 3 },
+    ];
+    expect(fairwayDistribution(holeLogs)).toEqual({ leftPct: 0, hitPct: 0, rightPct: 0, naPct: 0 });
   });
 });
 

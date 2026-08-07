@@ -3,6 +3,7 @@ jest.mock('@/lib/hooks/useRoundDetail', () => ({ useRoundDetail: jest.fn(), dele
 jest.mock('expo-router', () => ({
   useLocalSearchParams: jest.fn(),
   useRouter: jest.fn(),
+  Stack: { Screen: () => null },
 }));
 
 import { render, fireEvent, screen, waitFor } from '@testing-library/react-native';

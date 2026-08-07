@@ -57,7 +57,6 @@ export interface HoleLog {
   putts: number | null;
   fairway_hit: FairwayHit | null;
   gir: boolean | null;
-  gir_overridden: boolean;
   penalties: number;
   chip_shots: number;
 }
