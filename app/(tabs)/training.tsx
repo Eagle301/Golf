@@ -88,7 +88,11 @@ export default function TrainingScreen() {
   }
 
   return (
-    <ScrollView className="flex-1 bg-background dark:bg-background-dark" contentContainerClassName="pb-8">
+    <ScrollView
+      className="flex-1 bg-background dark:bg-background-dark"
+      contentContainerClassName="pb-8"
+      showsVerticalScrollIndicator={false}
+    >
       <View className="flex-row items-center justify-between px-4 pt-4">
         <Text className="text-xl font-semibold text-text-primary dark:text-text-primary-dark">Training</Text>
         <Pressable

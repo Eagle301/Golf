@@ -177,6 +177,7 @@ export default function CoursesScreen() {
       ) : (
         <FlatList
           className="px-4"
+          showsVerticalScrollIndicator={false}
           data={courses}
           keyExtractor={(item) => item.id}
           refreshControl={

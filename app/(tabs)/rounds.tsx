@@ -115,6 +115,7 @@ export default function RoundsScreen() {
     <View className="flex-1 bg-background dark:bg-background-dark">
       <FlatList
         className="px-4"
+        showsVerticalScrollIndicator={false}
         data={roundsLoading || roundsError ? [] : rounds}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={listHeader}
@@ -165,7 +166,7 @@ export default function RoundsScreen() {
               onChangeText={setCourseSearch}
               autoCorrect={false}
             />
-            <ScrollView keyboardShouldPersistTaps="handled">
+            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               <CourseStartList
                 courses={filterCoursesByName(courses, courseSearch)}
                 roundCounts={countRoundsByCourse(rounds)}

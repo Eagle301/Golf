@@ -77,6 +77,7 @@ export default function DashboardScreen() {
     <ScrollView
       className="flex-1 bg-background dark:bg-background-dark"
       contentContainerClassName="items-center px-4 pt-8"
+      showsVerticalScrollIndicator={false}
     >
       <View className="w-full flex-row items-center justify-between" testID="dashboard-header">
         <View className="flex-row items-center">
