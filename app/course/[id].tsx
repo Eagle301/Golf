@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { View, Text, TextInput, ScrollView, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { HoleRow } from '@/components/course/HoleRow';
+import { TeeBoxCard } from '@/components/course/TeeBoxCard';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Button } from '@/components/ui/Button';
 import { HeaderBackButton } from '@/components/ui/HeaderBackButton';
@@ -9,24 +10,38 @@ import {
   useCourse,
   saveCourse,
   deleteCourse,
+  blankTee,
   CourseValidationError,
   type HoleInput,
   type HoleCount,
+  type TeeBoxInput,
   type SaveCourseInput,
 } from '@/lib/hooks/useCourses';
 
 const HOLE_COUNT_OPTIONS: HoleCount[] = [9, 18];
 
+function isTeeValid(tee: TeeBoxInput, holeCount: HoleCount): boolean {
+  return (
+    tee.name.trim().length > 0 &&
+    tee.course_rating !== null &&
+    tee.course_rating > 0 &&
+    tee.slope_rating !== null &&
+    tee.slope_rating >= 55 &&
+    tee.slope_rating <= 155 &&
+    tee.lengths.length === holeCount &&
+    tee.lengths.every((l) => !!l && l > 0)
+  );
+}
+
 export default function CourseFormScreen() {
   const { id, importJson } = useLocalSearchParams<{ id: string; importJson?: string }>();
   const router = useRouter();
-  const { course, holes: initialHoles, loading, error: loadError } = useCourse(id);
+  const { course, holes: initialHoles, tees: initialTees, loading, error: loadError } = useCourse(id);
 
   const [name, setName] = useState('');
   const [holeCount, setHoleCount] = useState<HoleCount>(18);
-  const [courseRating, setCourseRating] = useState('');
-  const [slopeRating, setSlopeRating] = useState('');
   const [holes, setHoles] = useState<HoleInput[]>(initialHoles);
+  const [tees, setTees] = useState<TeeBoxInput[]>(initialTees);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -41,14 +56,13 @@ export default function CourseFormScreen() {
     if (isImporting) return;
     setName(course.name);
     setHoleCount(course.hole_count);
-    setCourseRating(course.course_rating != null ? String(course.course_rating) : '');
-    setSlopeRating(course.slope_rating != null ? String(course.slope_rating) : '');
-  }, [isImporting, course.name, course.hole_count, course.course_rating, course.slope_rating]);
+  }, [isImporting, course.name, course.hole_count]);
 
   useEffect(() => {
     if (isImporting) return;
     setHoles(initialHoles);
-  }, [isImporting, initialHoles]);
+    setTees(initialTees);
+  }, [isImporting, initialHoles, initialTees]);
 
   useEffect(() => {
     if (!isImporting) return;
@@ -56,41 +70,49 @@ export default function CourseFormScreen() {
       const imported = JSON.parse(importJson as string) as SaveCourseInput;
       setName(imported.name);
       setHoleCount(imported.hole_count);
-      setCourseRating(imported.course_rating != null ? String(imported.course_rating) : '');
-      setSlopeRating(imported.slope_rating != null ? String(imported.slope_rating) : '');
       setHoles(imported.holes);
+      setTees(imported.tees);
     } catch {
       setSaveError('Failed to load imported CSV data.');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isImporting, importJson]);
 
-  const parsedCourseRating = courseRating.trim() === '' ? null : parseFloat(courseRating);
-  const parsedSlopeRating = slopeRating.trim() === '' ? null : parseInt(slopeRating, 10);
-
   const isValid =
     name.trim().length > 0 &&
-    parsedCourseRating !== null &&
-    parsedCourseRating > 0 &&
-    parsedSlopeRating !== null &&
-    parsedSlopeRating >= 55 &&
-    parsedSlopeRating <= 155 &&
     holes.every(
       (h) =>
         (h.par === 3 || h.par === 4 || h.par === 5) &&
-        !!h.length_meters &&
-        h.length_meters > 0 &&
         !!h.stroke_index &&
         h.stroke_index >= 1 &&
         h.stroke_index <= holeCount
     ) &&
-    new Set(holes.map((h) => h.stroke_index)).size === holes.length;
+    new Set(holes.map((h) => h.stroke_index)).size === holes.length &&
+    tees.length > 0 &&
+    tees.every((tee) => isTeeValid(tee, holeCount)) &&
+    new Set(tees.map((t) => t.name.trim().toLowerCase())).size === tees.length;
 
   const totalPar = holes.reduce((sum, h) => sum + (h.par ?? 0), 0);
-  const totalLength = holes.reduce((sum, h) => sum + (h.length_meters ?? 0), 0);
 
   function updateHole(updated: HoleInput) {
     setHoles((prev) => prev.map((h) => (h.hole_number === updated.hole_number ? updated : h)));
+  }
+
+  function updateTee(index: number, updated: TeeBoxInput) {
+    setTees((prev) => prev.map((t, i) => (i === index ? updated : t)));
+  }
+
+  function removeTee(index: number) {
+    setTees((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function addTee() {
+    setTees((prev) => [...prev, blankTee(holeCount)]);
+  }
+
+  function resizeLengths(lengths: (number | null)[], count: HoleCount): (number | null)[] {
+    if (count < lengths.length) return lengths.slice(0, count);
+    return [...lengths, ...Array(count - lengths.length).fill(null)];
   }
 
   function changeHoleCount(count: HoleCount) {
@@ -102,11 +124,11 @@ export default function CourseFormScreen() {
       const extra = Array.from({ length: count - prev.length }, (_, i) => ({
         hole_number: prev.length + i + 1,
         par: null,
-        length_meters: null,
         stroke_index: null,
       }));
       return [...prev, ...extra];
     });
+    setTees((prev) => prev.map((tee) => ({ ...tee, lengths: resizeLengths(tee.lengths, count) })));
   }
 
   async function handleSave() {
@@ -117,9 +139,8 @@ export default function CourseFormScreen() {
         id: course.id ?? undefined,
         name,
         hole_count: holeCount,
-        course_rating: parsedCourseRating,
-        slope_rating: parsedSlopeRating,
         holes,
+        tees,
       });
       router.back();
     } catch (err) {
@@ -173,35 +194,6 @@ export default function CourseFormScreen() {
           placeholder="e.g. Pebble Beach"
         />
 
-        <View className="mb-4 flex-row">
-          <View className="mr-3 flex-1">
-            <Text className="mb-1 text-sm font-medium text-text-primary dark:text-text-primary-dark">
-              Course Rating
-            </Text>
-            <TextInput
-              testID="course-rating-input"
-              className="rounded border border-gray-300 px-3 py-2 text-text-primary dark:border-border-dark dark:bg-surface-dark dark:text-text-primary-dark"
-              keyboardType="decimal-pad"
-              value={courseRating}
-              onChangeText={setCourseRating}
-              placeholder="e.g. 72.5"
-            />
-          </View>
-          <View className="flex-1">
-            <Text className="mb-1 text-sm font-medium text-text-primary dark:text-text-primary-dark">
-              Slope Rating
-            </Text>
-            <TextInput
-              testID="slope-rating-input"
-              className="rounded border border-gray-300 px-3 py-2 text-text-primary dark:border-border-dark dark:bg-surface-dark dark:text-text-primary-dark"
-              keyboardType="number-pad"
-              value={slopeRating}
-              onChangeText={setSlopeRating}
-              placeholder="e.g. 130"
-            />
-          </View>
-        </View>
-
         <Text className="mb-1 text-sm font-medium text-text-primary dark:text-text-primary-dark">Holes</Text>
         <View className="mb-4 flex-row gap-3">
           {HOLE_COUNT_OPTIONS.map((count) => (
@@ -221,8 +213,27 @@ export default function CourseFormScreen() {
         ))}
 
         <Text className="my-3 text-sm text-text-secondary dark:text-text-secondary-dark">
-          Total par {totalPar} · {totalLength} m
+          Total par {totalPar}
         </Text>
+
+        <Text className="mb-2 text-sm font-medium text-text-primary dark:text-text-primary-dark">Tee boxes</Text>
+        {tees.map((tee, i) => (
+          <TeeBoxCard
+            key={tee.id ?? `new-${i}`}
+            tee={tee}
+            index={i}
+            onChange={(updated) => updateTee(i, updated)}
+            onRemove={() => removeTee(i)}
+            removable={tees.length > 1}
+          />
+        ))}
+        <Button
+          testID="add-tee-button"
+          label="Add tee box"
+          variant="secondary"
+          onPress={addTee}
+          containerClassName="mb-4"
+        />
 
         {saveError && <Text className="mb-3 text-red-600">{saveError}</Text>}
 

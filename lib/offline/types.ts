@@ -4,8 +4,17 @@ export interface CachedHole {
   id: string;
   hole_number: number;
   par: 3 | 4 | 5;
-  length_meters: number | null;
   stroke_index: number | null;
+}
+
+export interface CachedTeeBox {
+  id: string;
+  name: string;
+  course_rating: number | null;
+  slope_rating: number | null;
+  total_length_meters: number | null;
+  /** Per-hole lengths in meters, aligned with the course's holes sorted by hole_number. */
+  lengths: (number | null)[];
 }
 
 export interface CachedCourse {
@@ -13,10 +22,8 @@ export interface CachedCourse {
   name: string;
   hole_count: 9 | 18;
   total_par: number | null;
-  total_length_meters: number | null;
-  course_rating: number | null;
-  slope_rating: number | null;
   holes: CachedHole[];
+  tees: CachedTeeBox[];
 }
 
 export interface HoleLogEntry {
@@ -44,7 +51,10 @@ export interface ActiveRound {
   localId: string;
   course_id: string;
   course_name: string;
+  tee_box_id: string | null;
+  tee_name: string | null;
   hole_count: 9 | 18;
+  /** Snapshot of the selected tee's rating at round start. */
   course_rating: number | null;
   slope_rating: number | null;
   total_par: number | null;
@@ -59,6 +69,7 @@ export interface ActiveRound {
 export interface PendingRound {
   localId: string;
   course_id: string;
+  tee_box_id: string | null;
   date_played: string;
   notes: string;
   total_score: number;

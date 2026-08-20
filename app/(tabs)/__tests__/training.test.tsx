@@ -1,5 +1,6 @@
 jest.mock('@/lib/hooks/useRoutines', () => ({ useRoutines: jest.fn() }));
 jest.mock('@/lib/hooks/useTrainingSessions', () => ({ useTrainingSessions: jest.fn() }));
+jest.mock('@/lib/hooks/useLeaks', () => ({ useLeaks: jest.fn() }));
 jest.mock('expo-router', () => ({
   useRouter: jest.fn(),
   useFocusEffect: (effect: () => void) => effect(),
@@ -9,6 +10,7 @@ import { render, fireEvent, screen } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
 import { useRoutines } from '@/lib/hooks/useRoutines';
 import { useTrainingSessions } from '@/lib/hooks/useTrainingSessions';
+import { useLeaks } from '@/lib/hooks/useLeaks';
 import TrainingScreen from '../training';
 
 describe('TrainingScreen', () => {
@@ -39,6 +41,18 @@ describe('TrainingScreen', () => {
       loading: false,
       error: null,
       refetch: refetchSessions,
+    });
+    (useLeaks as jest.Mock).mockReturnValue({
+      leaks: [
+        { kind: 'three_putts', strokesPerRound: 2.1, category: 'putts' },
+        { kind: 'penalties', strokesPerRound: 1.5, category: 'strategy' },
+        { kind: 'chips', strokesPerRound: 0.8, category: 'short_game' },
+        { kind: 'tee_shots', strokesPerRound: 0.5, category: 'full_swing' },
+        { kind: 'approach', strokesPerRound: null, category: 'full_swing' },
+      ],
+      loading: false,
+      error: null,
+      refetch: jest.fn(),
     });
   });
 
@@ -88,6 +102,44 @@ describe('TrainingScreen', () => {
     fireEvent.press(screen.getByTestId('category-card-putts'));
     fireEvent.press(screen.getByTestId('start-session-r1'));
     expect(push).toHaveBeenCalledWith({ pathname: '/session/new', params: { routineId: 'r1' } });
+  });
+
+  it('shows all leaks in order, below the category cards', () => {
+    const { toJSON } = render(<TrainingScreen />);
+
+    const rows = screen.getAllByTestId(/^leak-row-/);
+    expect(rows.map((r) => r.props.testID)).toEqual([
+      'leak-row-three_putts',
+      'leak-row-penalties',
+      'leak-row-chips',
+      'leak-row-tee_shots',
+      'leak-row-approach',
+    ]);
+
+    const tree = JSON.stringify(toJSON());
+    expect(tree.indexOf('leaks-card')).toBeGreaterThan(tree.indexOf('category-card-strategy'));
+  });
+
+  it('expands the matching category when a leak row is pressed', () => {
+    render(<TrainingScreen />);
+
+    fireEvent.press(screen.getByTestId('leak-row-chips'));
+    expect(screen.getByTestId('category-expanded-short_game')).toBeTruthy();
+  });
+
+  it('hides the leaks card when there are no rounds to measure', () => {
+    (useLeaks as jest.Mock).mockReturnValue({ leaks: [], loading: false, error: null, refetch: jest.fn() });
+
+    render(<TrainingScreen />);
+
+    expect(screen.queryByTestId('leaks-card')).toBeNull();
+  });
+
+  it('opens the drill progress screen from the trend icon', () => {
+    render(<TrainingScreen />);
+    fireEvent.press(screen.getByTestId('category-card-putts'));
+    fireEvent.press(screen.getByTestId('routine-progress-r1'));
+    expect(push).toHaveBeenCalledWith('/progress/r1');
   });
 
   it('opens the routine editor from the edit icon', () => {

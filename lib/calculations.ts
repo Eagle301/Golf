@@ -269,10 +269,98 @@ export function fairwayDistribution(
   };
 }
 
-/** GIR hit percentage across a set of hole logs. */
+/**
+ * GIR hit percentage across the holes with a recorded GIR value. Holes where
+ * GIR is unknown (e.g. recorded without putts, so it couldn't be computed)
+ * are left out entirely rather than counted as misses.
+ */
 export function girPercentage(holeLogs: { gir: boolean | null }[]): number {
-  if (holeLogs.length === 0) return 0;
-  return (holeLogs.filter((h) => h.gir === true).length / holeLogs.length) * 100;
+  const recorded = holeLogs.filter((h) => h.gir !== null);
+  if (recorded.length === 0) return 0;
+  return (recorded.filter((h) => h.gir === true).length / recorded.length) * 100;
+}
+
+/**
+ * GIR hit percentage per par type, over holes with a recorded GIR value.
+ * A par type with no recorded holes yet reports null so callers can render
+ * a placeholder instead of a misleading 0%.
+ */
+export function girPercentageByPar(
+  holeLogs: { gir: boolean | null; par: number }[]
+): { par3: number | null; par4: number | null; par5: number | null } {
+  function forPar(par: number): number | null {
+    const recorded = holeLogs.filter((h) => h.par === par && h.gir !== null);
+    if (recorded.length === 0) return null;
+    return (recorded.filter((h) => h.gir === true).length / recorded.length) * 100;
+  }
+
+  return { par3: forPar(3), par4: forPar(4), par5: forPar(5) };
+}
+
+/**
+ * Scrambling percentage: of the holes where the green was missed in
+ * regulation (gir === false) and a score was recorded, the share saved at
+ * par or better. Returns null when there were no such opportunities, so
+ * callers can render a placeholder instead of a misleading 0%.
+ */
+export function scramblingPercentage(
+  holeLogs: { gir: boolean | null; score: number | null; par: number }[]
+): number | null {
+  const opportunities = holeLogs.filter(
+    (h): h is typeof h & { score: number } => h.gir === false && h.score !== null
+  );
+  if (opportunities.length === 0) return null;
+
+  const saved = opportunities.filter((h) => h.score <= h.par).length;
+  return (saved / opportunities.length) * 100;
+}
+
+export interface ScoreImpact {
+  /** Average score relative to par on holes where the target was hit. */
+  hitAvgVsPar: number | null;
+  /** Average score relative to par on holes where the target was missed. */
+  missAvgVsPar: number | null;
+  hitCount: number;
+  missCount: number;
+}
+
+function scoreImpact(holes: { hit: boolean; vsPar: number }[]): ScoreImpact {
+  const hits = holes.filter((h) => h.hit);
+  const misses = holes.filter((h) => !h.hit);
+  const avg = (group: typeof holes) =>
+    group.length > 0 ? group.reduce((sum, h) => sum + h.vsPar, 0) / group.length : null;
+
+  return { hitAvgVsPar: avg(hits), missAvgVsPar: avg(misses), hitCount: hits.length, missCount: misses.length };
+}
+
+/**
+ * How the tee shot relates to scoring: average score vs par on par-4/5 holes
+ * split by fairway hit vs missed (any miss direction). Correlational - it
+ * shows how much worse holes go after a missed fairway, not what the miss
+ * alone caused.
+ */
+export function fairwayScoreImpact(
+  holeLogs: { fairway_hit: FairwayHit | null; par: number; score: number | null }[]
+): ScoreImpact {
+  const eligible = holeLogs.filter(
+    (h): h is typeof h & { fairway_hit: FairwayHit; score: number } =>
+      h.par !== 3 && h.fairway_hit !== null && h.score !== null
+  );
+  return scoreImpact(eligible.map((h) => ({ hit: h.fairway_hit === 'yes', vsPar: h.score - h.par })));
+}
+
+/**
+ * How the approach relates to scoring: average score vs par split by green
+ * hit vs missed in regulation. Correlational, same caveat as
+ * fairwayScoreImpact.
+ */
+export function girScoreImpact(
+  holeLogs: { gir: boolean | null; par: number; score: number | null }[]
+): ScoreImpact {
+  const eligible = holeLogs.filter(
+    (h): h is typeof h & { gir: boolean; score: number } => h.gir !== null && h.score !== null
+  );
+  return scoreImpact(eligible.map((h) => ({ hit: h.gir, vsPar: h.score - h.par })));
 }
 
 /**

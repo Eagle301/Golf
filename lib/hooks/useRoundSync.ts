@@ -49,6 +49,7 @@ async function runSync(): Promise<void> {
       .insert({
         user_id: user.id,
         course_id: round.course_id,
+        tee_box_id: round.tee_box_id ?? null,
         date_played: round.date_played,
         total_score: round.total_score,
         total_putts: round.total_putts,

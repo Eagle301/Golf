@@ -34,7 +34,14 @@ describe('CoursesScreen', () => {
 
   it('lists courses and navigates to the edit screen on tap', () => {
     (useCourses as jest.Mock).mockReturnValue({
-      courses: [{ id: 'abc', name: 'Pebble Beach', total_par: 72, total_length_meters: 6300 }],
+      courses: [
+        {
+          id: 'abc',
+          name: 'Pebble Beach',
+          total_par: 72,
+          tee_boxes: [{ name: 'Gulur', course_rating: 72.5, slope_rating: 130, total_length_meters: 6300 }],
+        },
+      ],
       loading: false,
       error: null,
       refetch,

@@ -26,6 +26,9 @@ describe('DashboardScreen', () => {
         averageScore: 91.5,
         fairwayDistribution: { leftPct: 20, hitPct: 60, rightPct: 20, naPct: 10 },
         girPercentage: 35,
+        girByPar: { par3: 45, par4: 32, par5: null },
+        scramblingPercentage: 21.4,
+        chipsPerRound: 4.8,
         scoreByPar: { par3: 3.5, par4: 4.8, par5: 5.2 },
         scoringCategoryAverages: { eagle: 0.1, birdie: 1.2, par: 8.5, bogey: 5.4, double: 2.1, doubleOrWorse: 0.7 },
         averagePutts: 31.4,
@@ -131,6 +134,47 @@ describe('DashboardScreen', () => {
     expect(screen.getByTestId('gir-donut-value').props.children).toBe('35%');
   });
 
+  it('expands the GIR card on tap: breakdown list on the left, donut unchanged, fairway card hidden', () => {
+    (useScoreDifferentialHistory as jest.Mock).mockReturnValue({
+      rounds: [],
+      loading: false,
+      refetch: refetchDifferentials,
+    });
+
+    render(<DashboardScreen />);
+    fireEvent.press(screen.getByTestId('gir-donut-toggle'));
+
+    expect(screen.getByTestId('gir-breakdown')).toBeTruthy();
+    expect(screen.getByTestId('gir-par3-value').props.children).toBe('45%');
+    expect(screen.getByTestId('gir-par4-value').props.children).toBe('32%');
+    expect(screen.getByTestId('gir-par5-value').props.children).toBe('—');
+    expect(screen.getByTestId('gir-scrambling-value').props.children).toBe('21%');
+    expect(screen.getByTestId('gir-chips-value').props.children).toBe('4.8');
+    // Each stat renders as a colored progress bar; par 5 has no data, so no bar.
+    expect(screen.getByTestId('gir-par3-value-bar').props.style).toEqual(
+      expect.objectContaining({ width: '45%' })
+    );
+    expect(screen.queryByTestId('gir-par5-value-bar')).toBeNull();
+    expect(screen.getByTestId('gir-donut-chart')).toBeTruthy();
+    expect(screen.getByTestId('gir-donut-value').props.children).toBe('35%');
+    expect(screen.queryByTestId('fairway-distribution-card')).toBeNull();
+  });
+
+  it('collapses the GIR card and restores the fairway card on a second tap', () => {
+    (useScoreDifferentialHistory as jest.Mock).mockReturnValue({
+      rounds: [],
+      loading: false,
+      refetch: refetchDifferentials,
+    });
+
+    render(<DashboardScreen />);
+    fireEvent.press(screen.getByTestId('gir-donut-toggle'));
+    fireEvent.press(screen.getByTestId('gir-donut-toggle'));
+
+    expect(screen.queryByTestId('gir-breakdown')).toBeNull();
+    expect(screen.getByTestId('fairway-distribution-card')).toBeTruthy();
+  });
+
   it('shows loading indicators for the stats charts while stats load', () => {
     (useScoreDifferentialHistory as jest.Mock).mockReturnValue({
       rounds: [],
@@ -225,6 +269,9 @@ describe('DashboardScreen theming', () => {
         averageScore: 91.5,
         fairwayDistribution: { leftPct: 20, hitPct: 60, rightPct: 20, naPct: 10 },
         girPercentage: 35,
+        girByPar: { par3: 45, par4: 32, par5: null },
+        scramblingPercentage: 21.4,
+        chipsPerRound: 4.8,
         scoreByPar: { par3: 3.5, par4: 4.8, par5: 5.2 },
         scoringCategoryAverages: { eagle: 0.1, birdie: 1.2, par: 8.5, bogey: 5.4, double: 2.1, doubleOrWorse: 0.7 },
         averagePutts: 31.4,

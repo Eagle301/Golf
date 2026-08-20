@@ -10,6 +10,7 @@ function makeRound(localId: string): PendingRound {
   return {
     localId,
     course_id: 'course-1',
+    tee_box_id: 'tee-1',
     date_played: '2026-07-24',
     notes: '',
     total_score: 90,

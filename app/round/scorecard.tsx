@@ -139,6 +139,7 @@ function HistoricalRoundScorecard({ roundId }: { roundId: string }) {
         <View className="mb-3 flex-row items-center justify-between">
           <Text className="text-xl font-semibold text-text-primary dark:text-text-primary-dark">
             {roundDetail.courseName}
+            {roundDetail.teeName ? ` · ${roundDetail.teeName}` : ''}
           </Text>
           <Text
             testID="scorecard-net-par-diff"

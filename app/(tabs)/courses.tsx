@@ -116,7 +116,10 @@ export default function CoursesScreen() {
                 {item.name}
               </Text>
               <Text className="text-sm text-text-secondary dark:text-text-secondary-dark">
-                Par {item.total_par ?? '-'} · {item.total_length_meters ?? '-'} m
+                Par {item.total_par ?? '-'} ·{' '}
+                {item.tee_boxes.length > 0
+                  ? item.tee_boxes.map((t) => t.name).join(' / ')
+                  : 'No tees'}
               </Text>
             </Pressable>
           )}

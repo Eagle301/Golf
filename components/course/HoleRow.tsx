@@ -27,17 +27,6 @@ export function HoleRow({ hole, onChange }: HoleRowProps) {
         ))}
       </View>
       <TextInput
-        testID={`length-${hole.hole_number}`}
-        className="w-16 rounded border border-gray-300 px-2 py-1 text-right"
-        keyboardType="number-pad"
-        placeholder="m"
-        value={hole.length_meters != null ? String(hole.length_meters) : ''}
-        onChangeText={(text) => {
-          const parsed = text === '' ? null : parseInt(text, 10);
-          onChange({ ...hole, length_meters: Number.isNaN(parsed as number) ? null : parsed });
-        }}
-      />
-      <TextInput
         testID={`stroke-index-${hole.hole_number}`}
         className="w-12 rounded border border-gray-300 px-2 py-1 text-right"
         keyboardType="number-pad"

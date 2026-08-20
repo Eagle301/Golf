@@ -10,11 +10,34 @@ import { GirDonutChart } from '@/components/dashboard/GirDonutChart';
 import { ScoringByParChart } from '@/components/dashboard/ScoringByParChart';
 import { ScoringCategoryBreakdown } from '@/components/dashboard/ScoringCategoryBreakdown';
 import { PuttsDistributionChart } from '@/components/dashboard/PuttsDistributionChart';
+import { StatBarRow, toneForHigherBetter, toneForLowerBetter } from '@/components/dashboard/StatBarRow';
 import { Avatar } from '@/components/ui/Avatar';
 import { Card } from '@/components/ui/Card';
 
 // Used only until the row below has been measured for the first time.
 const FALLBACK_COMPACT_CARD_HEIGHT = 208;
+
+function formatPct(pct: number | null | undefined): string {
+  return pct != null ? `${Math.round(pct)}%` : '—';
+}
+
+// Absolute quality bands for the GIR-card breakdown bars: percentages read
+// against amateur norms (30%+ is genuinely good, under 15% needs work);
+// chips/round reads inverted - fewer is better.
+const PCT_TONES = { good: 30, ok: 15 };
+const CHIPS_TONES = { good: 7, ok: 12 };
+
+function girPctRow(label: string, pct: number | null | undefined, testID: string) {
+  return (
+    <StatBarRow
+      label={label}
+      valueLabel={formatPct(pct)}
+      fillPct={pct ?? null}
+      tone={toneForHigherBetter(pct, PCT_TONES)}
+      testID={testID}
+    />
+  );
+}
 
 export default function DashboardScreen() {
   const { handicap, fullName, loading, refetch } = useProfile();
@@ -22,6 +45,7 @@ export default function DashboardScreen() {
     useScoreDifferentialHistory();
   const { stats, loading: statsLoading, refetch: refetchStats } = useRoundStats();
   const [fairwayPuttsExpanded, setFairwayPuttsExpanded] = useState(false);
+  const [girExpanded, setGirExpanded] = useState(false);
   // The avg-score/scoring-by-par row below is always mounted (it never
   // toggles away), so measuring it is stable - unlike measuring the GIR
   // card, which glitched every time it unmounted/remounted across the
@@ -88,6 +112,7 @@ export default function DashboardScreen() {
       </Card>
 
       <View className="mt-6 w-full flex-row">
+        {!girExpanded && (
         <Pressable
           testID="fairway-putts-toggle"
           onPress={() => setFairwayPuttsExpanded((v) => !v)}
@@ -154,25 +179,51 @@ export default function DashboardScreen() {
             )}
           </Card>
         </Pressable>
+        )}
 
         {!fairwayPuttsExpanded && (
-          // Plain View wrapper (mirroring the fairway side's Pressable) owns the
-          // flex-1 sizing; the Card itself carries no sizing classes. A flex
-          // item that carries its own padding grows unevenly against a sibling
+          // Pressable wrapper (mirroring the fairway side's) owns the flex-1
+          // sizing; the Card itself carries no sizing classes. A flex item
+          // that carries its own padding grows unevenly against a sibling
           // whose padding lives one level deeper - see fairway-distribution-card.
-          <View className="ml-2 flex-1">
+          <Pressable
+            testID="gir-donut-toggle"
+            onPress={() => setGirExpanded((v) => !v)}
+            className={`flex-1 ${girExpanded ? '' : 'ml-2'}`}
+          >
             <Card
-              className="items-center px-4 py-4"
-              style={{ height: compactCardHeight, justifyContent: 'center' }}
+              className={girExpanded ? 'px-4 py-4' : 'items-center px-4 py-4'}
+              style={girExpanded ? undefined : { height: compactCardHeight, justifyContent: 'center' }}
               testID="gir-donut-card"
             >
               {statsLoading ? (
                 <ActivityIndicator testID="gir-donut-loading" />
+              ) : girExpanded ? (
+                // Expanded: breakdown list on the left, the same donut on the
+                // right. The fairway/putts card is hidden while expanded, the
+                // same way this card hides when that one expands.
+                <View className="flex-row items-center">
+                  <View className="mr-4 flex-1" testID="gir-breakdown">
+                    {girPctRow('GIR Par 3', stats?.girByPar.par3, 'gir-par3-value')}
+                    {girPctRow('GIR Par 4', stats?.girByPar.par4, 'gir-par4-value')}
+                    {girPctRow('GIR Par 5', stats?.girByPar.par5, 'gir-par5-value')}
+                    {girPctRow('Scrambling', stats?.scramblingPercentage, 'gir-scrambling-value')}
+                    <StatBarRow
+                      label="Chips/round"
+                      valueLabel={stats?.chipsPerRound != null ? stats.chipsPerRound.toFixed(1) : '—'}
+                      // Scale the bar against 18 (a chip on every hole).
+                      fillPct={stats?.chipsPerRound != null ? (stats.chipsPerRound / 18) * 100 : null}
+                      tone={toneForLowerBetter(stats?.chipsPerRound, CHIPS_TONES)}
+                      testID="gir-chips-value"
+                    />
+                  </View>
+                  <GirDonutChart percentage={stats?.girPercentage ?? 0} />
+                </View>
               ) : (
                 <GirDonutChart percentage={stats?.girPercentage ?? 0} />
               )}
             </Card>
-          </View>
+          </Pressable>
         )}
       </View>
 

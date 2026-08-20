@@ -20,9 +20,6 @@ export interface Course {
   name: string;
   hole_count: 9 | 18;
   total_par: number | null;
-  total_length_meters: number | null;
-  course_rating: number | null;
-  slope_rating: number | null;
   created_at: string;
 }
 
@@ -31,14 +28,30 @@ export interface Hole {
   course_id: string;
   hole_number: number;
   par: 3 | 4 | 5;
-  length_meters: number | null;
   stroke_index: number | null;
+}
+
+export interface TeeBox {
+  id: string;
+  course_id: string;
+  name: string;
+  course_rating: number | null;
+  slope_rating: number | null;
+  total_length_meters: number | null;
+  sort_order: number;
+}
+
+export interface TeeLength {
+  tee_box_id: string;
+  hole_id: string;
+  length_meters: number | null;
 }
 
 export interface Round {
   id: string;
   user_id: string;
   course_id: string;
+  tee_box_id: string | null;
   date_played: string;
   total_score: number | null;
   total_putts: number | null;
@@ -114,6 +127,16 @@ export interface Database {
         Row: Hole;
         Insert: Partial<Hole> & { course_id: string; hole_number: number; par: 3 | 4 | 5 };
         Update: Partial<Hole>;
+      };
+      tee_boxes: {
+        Row: TeeBox;
+        Insert: Partial<TeeBox> & { course_id: string; name: string };
+        Update: Partial<TeeBox>;
+      };
+      tee_lengths: {
+        Row: TeeLength;
+        Insert: TeeLength;
+        Update: Partial<TeeLength>;
       };
       rounds: {
         Row: Round;

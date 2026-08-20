@@ -13,10 +13,14 @@ import {
   averageScoreByPar,
   fairwayDistribution,
   girPercentage,
+  girPercentageByPar,
   averageEighteenHoleScore,
   averageScoringCategoriesPerRound,
   puttsDistribution,
   averagePuttsPerRound,
+  scramblingPercentage,
+  fairwayScoreImpact,
+  girScoreImpact,
   calculatePoints,
   toSuperscript,
   STARTING_HANDICAP,
@@ -44,6 +48,7 @@ describe('calculateHandicap', () => {
       id: `r-${dateOffset}`,
       user_id: 'u1',
       course_id: 'c1',
+      tee_box_id: 'tee-1',
       date_played: new Date(2026, 0, 1 + dateOffset).toISOString().slice(0, 10),
       total_score: null,
       total_putts: null,
@@ -354,12 +359,18 @@ describe('fairwayDistribution', () => {
 });
 
 describe('girPercentage', () => {
-  it('computes the hit percentage across hole logs', () => {
-    expect(girPercentage([{ gir: true }, { gir: false }, { gir: true }, { gir: null }])).toBe(50);
+  it('computes the hit percentage across holes with a recorded GIR', () => {
+    expect(girPercentage([{ gir: true }, { gir: false }, { gir: true }, { gir: false }])).toBe(50);
+  });
+
+  it('ignores holes where GIR is unknown instead of counting them as misses', () => {
+    // e.g. older rounds recorded without putts: gir could not be computed
+    expect(girPercentage([{ gir: true }, { gir: null }, { gir: false }, { gir: null }])).toBe(50);
   });
 
   it('returns 0 for no holes', () => {
     expect(girPercentage([])).toBe(0);
+    expect(girPercentage([{ gir: null }])).toBe(0);
   });
 });
 
@@ -486,5 +497,126 @@ describe('averagePuttsPerRound', () => {
 
   it('returns null when no round has a putts total', () => {
     expect(averagePuttsPerRound([{ total_putts: null, hole_count: 18 }])).toBeNull();
+  });
+});
+
+describe('scramblingPercentage', () => {
+  it('counts a missed-GIR hole saved at par or better as a scramble', () => {
+    const holeLogs = [
+      { gir: false, score: 4, par: 4 }, // saved par
+      { gir: false, score: 3, par: 4 }, // chipped in for birdie
+      { gir: false, score: 5, par: 4 }, // bogey - failed scramble
+      { gir: false, score: 6, par: 4 }, // double - failed scramble
+    ];
+    expect(scramblingPercentage(holeLogs)).toBe(50);
+  });
+
+  it('ignores holes that hit the green or have no GIR recorded', () => {
+    const holeLogs = [
+      { gir: true, score: 4, par: 4 },
+      { gir: null, score: 4, par: 4 },
+      { gir: false, score: 4, par: 4 },
+    ];
+    expect(scramblingPercentage(holeLogs)).toBe(100);
+  });
+
+  it('ignores missed-GIR holes without a recorded score', () => {
+    const holeLogs = [
+      { gir: false, score: null, par: 4 },
+      { gir: false, score: 5, par: 4 },
+    ];
+    expect(scramblingPercentage(holeLogs)).toBe(0);
+  });
+
+  it('returns null when there are no scrambling opportunities', () => {
+    expect(scramblingPercentage([])).toBeNull();
+    expect(scramblingPercentage([{ gir: true, score: 4, par: 4 }])).toBeNull();
+  });
+});
+
+describe('fairwayScoreImpact', () => {
+  it('averages score-vs-par separately for fairway hits and misses', () => {
+    const holeLogs = [
+      { fairway_hit: 'yes' as const, par: 4, score: 4 }, // hit, E
+      { fairway_hit: 'yes' as const, par: 5, score: 6 }, // hit, +1
+      { fairway_hit: 'missed_left' as const, par: 4, score: 6 }, // miss, +2
+      { fairway_hit: 'missed_short' as const, par: 4, score: 5 }, // miss, +1
+    ];
+    expect(fairwayScoreImpact(holeLogs)).toEqual({
+      hitAvgVsPar: 0.5,
+      missAvgVsPar: 1.5,
+      hitCount: 2,
+      missCount: 2,
+    });
+  });
+
+  it('ignores par 3s, holes without a fairway value, and holes without a score', () => {
+    const holeLogs = [
+      { fairway_hit: 'yes' as const, par: 3, score: 3 },
+      { fairway_hit: null, par: 4, score: 5 },
+      { fairway_hit: 'yes' as const, par: 4, score: null },
+      { fairway_hit: 'missed_right' as const, par: 4, score: 5 },
+    ];
+    expect(fairwayScoreImpact(holeLogs)).toEqual({
+      hitAvgVsPar: null,
+      missAvgVsPar: 1,
+      hitCount: 0,
+      missCount: 1,
+    });
+  });
+});
+
+describe('girScoreImpact', () => {
+  it('averages score-vs-par separately for greens hit and missed', () => {
+    const holeLogs = [
+      { gir: true, par: 4, score: 4 }, // hit, E
+      { gir: true, par: 3, score: 4 }, // hit, +1
+      { gir: false, par: 4, score: 6 }, // miss, +2
+      { gir: false, par: 5, score: 6 }, // miss, +1
+    ];
+    expect(girScoreImpact(holeLogs)).toEqual({
+      hitAvgVsPar: 0.5,
+      missAvgVsPar: 1.5,
+      hitCount: 2,
+      missCount: 2,
+    });
+  });
+
+  it('ignores holes without a GIR value or score', () => {
+    const holeLogs = [
+      { gir: null, par: 4, score: 5 },
+      { gir: true, par: 4, score: null },
+      { gir: false, par: 4, score: 5 },
+    ];
+    expect(girScoreImpact(holeLogs)).toEqual({
+      hitAvgVsPar: null,
+      missAvgVsPar: 1,
+      hitCount: 0,
+      missCount: 1,
+    });
+  });
+});
+
+describe('girPercentageByPar', () => {
+  it('computes GIR percentage separately for par 3, 4, and 5 holes', () => {
+    const holeLogs = [
+      { gir: true, par: 3 },
+      { gir: false, par: 3 },
+      { gir: true, par: 4 },
+      { gir: true, par: 4 },
+      { gir: false, par: 4 },
+      { gir: false, par: 4 },
+      { gir: false, par: 5 },
+    ];
+    expect(girPercentageByPar(holeLogs)).toEqual({ par3: 50, par4: 50, par5: 0 });
+  });
+
+  it('ignores holes with unknown GIR and reports null for par types with no data', () => {
+    const holeLogs = [
+      { gir: true, par: 3 },
+      { gir: null, par: 3 },
+      { gir: null, par: 4 },
+    ];
+    expect(girPercentageByPar(holeLogs)).toEqual({ par3: 100, par4: null, par5: null });
   });
 });

@@ -166,6 +166,7 @@ export default function LiveRoundScreen() {
       await addPendingRound({
         localId: activeRound.localId,
         course_id: activeRound.course_id,
+        tee_box_id: activeRound.tee_box_id,
         date_played: activeRound.date_played,
         notes: activeRound.notes,
         total_score: totalScore,

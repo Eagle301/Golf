@@ -2,7 +2,7 @@ import { render, fireEvent } from '@testing-library/react-native';
 import { HoleRow } from '../HoleRow';
 
 describe('HoleRow', () => {
-  const baseHole = { hole_number: 1, par: null, length_meters: null, stroke_index: null };
+  const baseHole = { hole_number: 1, par: null, stroke_index: null };
 
   it('renders the hole number', () => {
     const { getByText } = render(<HoleRow hole={baseHole} onChange={jest.fn()} />);
@@ -16,11 +16,9 @@ describe('HoleRow', () => {
     expect(onChange).toHaveBeenCalledWith({ ...baseHole, par: 4 });
   });
 
-  it('calls onChange with a parsed length in meters', () => {
-    const onChange = jest.fn();
-    const { getByTestId } = render(<HoleRow hole={baseHole} onChange={onChange} />);
-    fireEvent.changeText(getByTestId('length-1'), '350');
-    expect(onChange).toHaveBeenCalledWith({ ...baseHole, length_meters: 350 });
+  it('does not render a length input (lengths are edited per tee box)', () => {
+    const { queryByTestId } = render(<HoleRow hole={baseHole} onChange={jest.fn()} />);
+    expect(queryByTestId('length-1')).toBeNull();
   });
 
   it('calls onChange with a parsed stroke index', () => {

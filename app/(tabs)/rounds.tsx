@@ -5,7 +5,7 @@ import { getCachedCourses, refreshCourseCache } from '@/lib/offline/courseCache'
 import { getActiveRound, setActiveRound } from '@/lib/offline/activeRound';
 import { generateLocalId } from '@/lib/offline/localId';
 import { syncPendingRounds } from '@/lib/hooks/useRoundSync';
-import type { ActiveRound, CachedCourse } from '@/lib/offline/types';
+import type { ActiveRound, CachedCourse, CachedTeeBox } from '@/lib/offline/types';
 import { useRounds } from '@/lib/hooks/useRounds';
 import { getCurrentHandicap } from '@/lib/hooks/useProfile';
 import { AutoWidthButton } from '@/components/ui/AutoWidthButton';
@@ -17,6 +17,8 @@ export default function RoundsScreen() {
   const [courses, setCourses] = useState<CachedCourse[]>([]);
   const [activeRoundCourseName, setActiveRoundCourseName] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  // Course whose tee options are expanded (multi-tee courses need a pick first).
+  const [teePickerCourseId, setTeePickerCourseId] = useState<string | null>(null);
 
   const loadCourses = useCallback(async () => {
     setCourses(await getCachedCourses());
@@ -46,25 +48,35 @@ export default function RoundsScreen() {
     setRefreshing(false);
   }
 
-  async function startRound(course: CachedCourse) {
+  function handleCoursePress(course: CachedCourse) {
+    if (course.tees.length === 1) {
+      startRound(course, course.tees[0]);
+      return;
+    }
+    setTeePickerCourseId((prev) => (prev === course.id ? null : course.id));
+  }
+
+  async function startRound(course: CachedCourse, tee: CachedTeeBox) {
     const handicap = await getCurrentHandicap();
     const newRound: ActiveRound = {
       localId: generateLocalId(),
       course_id: course.id,
       course_name: course.name,
+      tee_box_id: tee.id,
+      tee_name: tee.name,
       hole_count: course.hole_count,
-      course_rating: course.course_rating,
-      slope_rating: course.slope_rating,
+      course_rating: tee.course_rating,
+      slope_rating: tee.slope_rating,
       total_par: course.total_par,
-      total_length_meters: course.total_length_meters,
+      total_length_meters: tee.total_length_meters,
       handicap_at_start: handicap,
       date_played: new Date().toISOString().slice(0, 10),
       notes: '',
       currentHoleIndex: -1,
-      holeLogs: course.holes.map((h) => ({
+      holeLogs: course.holes.map((h, i) => ({
         hole_number: h.hole_number,
         par: h.par,
-        length_meters: h.length_meters,
+        length_meters: tee.lengths[i] ?? null,
         stroke_index: h.stroke_index,
         hole_id: h.id,
         score: null,
@@ -76,6 +88,7 @@ export default function RoundsScreen() {
         chip_shots: 0,
       })),
     };
+    setTeePickerCourseId(null);
     await setActiveRound(newRound);
     router.push('/round/active');
   }
@@ -105,16 +118,41 @@ export default function RoundsScreen() {
         {courses.length === 0 ? (
           <Text className="text-text-secondary dark:text-text-secondary-dark">No courses available yet.</Text>
         ) : (
-          <View className="flex-row flex-wrap">
-            {courses.map((course) => (
-              <AutoWidthButton
-                key={course.id}
-                testID={`start-round-${course.id}`}
-                label={course.name}
-                onPress={() => startRound(course)}
-                containerClassName="mb-3 mr-3"
-              />
-            ))}
+          <View>
+            <View className="flex-row flex-wrap">
+              {courses.map((course) => (
+                <AutoWidthButton
+                  key={course.id}
+                  testID={`start-round-${course.id}`}
+                  label={course.name}
+                  onPress={() => handleCoursePress(course)}
+                  containerClassName="mb-3 mr-3"
+                />
+              ))}
+            </View>
+            {teePickerCourseId &&
+              (() => {
+                const course = courses.find((c) => c.id === teePickerCourseId);
+                if (!course) return null;
+                return (
+                  <View className="mb-1">
+                    <Text className="mb-2 text-sm text-text-secondary dark:text-text-secondary-dark">
+                      Choose a tee at {course.name}
+                    </Text>
+                    <View className="flex-row flex-wrap">
+                      {course.tees.map((tee) => (
+                        <AutoWidthButton
+                          key={tee.id}
+                          testID={`start-round-${course.id}-tee-${tee.id}`}
+                          label={`${tee.name} · ${tee.total_length_meters ?? '-'} m`}
+                          onPress={() => startRound(course, tee)}
+                          containerClassName="mb-3 mr-3"
+                        />
+                      ))}
+                    </View>
+                  </View>
+                );
+              })()}
           </View>
         )}
       </View>

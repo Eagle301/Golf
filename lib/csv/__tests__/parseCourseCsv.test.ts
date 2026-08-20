@@ -1,89 +1,120 @@
 import { parseCourseCsv } from '../parseCourseCsv';
 
-const NINE_HOLE_CSV = `Name,Korpa Landið/Áin,,
-CR,69,,
-Slope,124,,
-Hole,Length,Par,Index
-1,297,4,6
-2,285,4,7
-3,309,4,3
-4,137,3,9
-5,329,4,5
-6,420,5,1
-7,140,3,8
-8,384,4,4
-9,467,5,2`;
+const NINE_HOLE_CSV = `Name,Korpa Landið/Áin
+Tee,Gulur,69,124
+Hole,Par,Index,Gulur
+1,4,6,297
+2,4,7,285
+3,4,3,309
+4,3,9,137
+5,4,5,329
+6,5,1,420
+7,3,8,140
+8,4,4,384
+9,5,2,467`;
 
-const EIGHTEEN_HOLE_CSV = `Name,Korpa Landið/Áin,,
-CR,69,,
-Slope,124,,
-Hole,Length,Par,Index
-1,297,4,12
-2,285,4,14
-3,309,4,6
-4,137,3,18
-5,329,4,10
-6,420,5,2
-7,140,3,16
-8,384,4,8
-9,467,5,4
-10,286,4,15
-11,414,5,7
-12,299,4,5
-13,120,3,11
-14,350,4,3
-15,340,4,1
-16,408,5,13
-17,165,3,17
-18,326,4,9`;
+const TWO_TEE_CSV = `Name,Hvaleyrarvöllur
+Tee,Gulur,70.9,127
+Tee,Rauður,68.2,118
+Hole,Par,Index,Gulur,Rauður
+1,4,12,297,260
+2,4,14,285,250
+3,4,6,309,270
+4,3,18,137,110
+5,4,10,329,300
+6,5,2,420,390
+7,3,16,140,120
+8,4,8,384,350
+9,5,4,467,430
+10,4,15,286,255
+11,5,7,414,380
+12,4,5,299,265
+13,3,11,120,100
+14,4,3,350,320
+15,4,1,340,310
+16,5,13,408,375
+17,3,17,165,140
+18,4,9,326,295`;
 
 describe('parseCourseCsv', () => {
-  it('parses a valid 9-hole CSV', () => {
+  it('parses a 9-hole CSV with one tee', () => {
     const result = parseCourseCsv(NINE_HOLE_CSV);
 
     expect(result.name).toBe('Korpa Landið/Áin');
-    expect(result.course_rating).toBe(69);
-    expect(result.slope_rating).toBe(124);
     expect(result.hole_count).toBe(9);
     expect(result.holes).toHaveLength(9);
-    expect(result.holes[0]).toEqual({ hole_number: 1, par: 4, length_meters: 297, stroke_index: 6 });
+    expect(result.holes[0]).toEqual({ hole_number: 1, par: 4, stroke_index: 6 });
+    expect(result.tees).toHaveLength(1);
+    expect(result.tees[0].name).toBe('Gulur');
+    expect(result.tees[0].course_rating).toBe(69);
+    expect(result.tees[0].slope_rating).toBe(124);
+    expect(result.tees[0].lengths).toHaveLength(9);
+    expect(result.tees[0].lengths[0]).toBe(297);
   });
 
-  it('parses a valid 18-hole CSV', () => {
-    const result = parseCourseCsv(EIGHTEEN_HOLE_CSV);
+  it('parses an 18-hole CSV with two tees', () => {
+    const result = parseCourseCsv(TWO_TEE_CSV);
 
     expect(result.hole_count).toBe(18);
-    expect(result.holes).toHaveLength(18);
-    expect(result.holes[17]).toEqual({ hole_number: 18, par: 4, length_meters: 326, stroke_index: 9 });
+    expect(result.tees).toHaveLength(2);
+    expect(result.tees[1]).toEqual({
+      name: 'Rauður',
+      course_rating: 68.2,
+      slope_rating: 118,
+      lengths: [260, 250, 270, 110, 300, 390, 120, 350, 430, 255, 380, 265, 100, 320, 310, 375, 140, 295],
+    });
+    expect(result.holes[17]).toEqual({ hole_number: 18, par: 4, stroke_index: 9 });
   });
 
   it('throws when the Name row is missing', () => {
-    const csv = EIGHTEEN_HOLE_CSV.replace('Name,Korpa Landið/Áin,,\n', '');
-    expect(() => parseCourseCsv(csv)).toThrow(/CR/);
+    const csv = TWO_TEE_CSV.replace('Name,Hvaleyrarvöllur\n', '');
+    expect(() => parseCourseCsv(csv)).toThrow(/Name/);
+  });
+
+  it('throws when there are no Tee rows', () => {
+    const csv = TWO_TEE_CSV.split('\n')
+      .filter((line) => !line.startsWith('Tee,'))
+      .join('\n');
+    expect(() => parseCourseCsv(csv)).toThrow(/at least one "Tee" row/i);
+  });
+
+  it('throws when a Tee row is missing its slope', () => {
+    const csv = TWO_TEE_CSV.replace('Tee,Gulur,70.9,127', 'Tee,Gulur,70.9');
+    expect(() => parseCourseCsv(csv)).toThrow(/slope/i);
+  });
+
+  it('throws when the header tee columns do not match the Tee rows', () => {
+    const csv = TWO_TEE_CSV.replace('Hole,Par,Index,Gulur,Rauður', 'Hole,Par,Index,Gulur,Blár');
+    expect(() => parseCourseCsv(csv)).toThrow(/header/i);
   });
 
   it('throws on a malformed header row', () => {
-    const csv = EIGHTEEN_HOLE_CSV.replace('Hole,Length,Par,Index', 'Hole,Par,Length,Index');
+    const csv = TWO_TEE_CSV.replace('Hole,Par,Index,Gulur,Rauður', 'Hole,Index,Par,Gulur,Rauður');
     expect(() => parseCourseCsv(csv)).toThrow(/header/i);
   });
 
   it('throws when the hole count is not 9 or 18', () => {
-    const csv = EIGHTEEN_HOLE_CSV.split('\n').slice(0, -3).join('\n');
+    const csv = TWO_TEE_CSV.split('\n').slice(0, -3).join('\n');
     expect(() => parseCourseCsv(csv)).toThrow(/9 or 18/);
   });
 
   it('throws on an invalid par value', () => {
-    const csv = EIGHTEEN_HOLE_CSV.replace('1,297,4,12', '1,297,6,12');
+    const csv = TWO_TEE_CSV.replace('1,4,12,297,260', '1,6,12,297,260');
     expect(() => parseCourseCsv(csv)).toThrow(/par must be 3, 4, or 5/);
   });
 
   it('throws on a duplicate stroke index', () => {
-    const csv = EIGHTEEN_HOLE_CSV.replace('2,285,4,14', '2,285,4,12');
+    const csv = TWO_TEE_CSV.replace('2,4,14,285,250', '2,4,12,285,250');
     expect(() => parseCourseCsv(csv)).toThrow(/used more than once/);
   });
 
-  it('throws on a non-numeric value', () => {
-    const csv = EIGHTEEN_HOLE_CSV.replace('1,297,4,12', '1,abc,4,12');
+  it('throws on a non-numeric length', () => {
+    const csv = TWO_TEE_CSV.replace('1,4,12,297,260', '1,4,12,abc,260');
     expect(() => parseCourseCsv(csv)).toThrow(/must be a number/);
+  });
+
+  it('throws when a hole row is missing a length column for a tee', () => {
+    const csv = TWO_TEE_CSV.replace('1,4,12,297,260', '1,4,12,297');
+    expect(() => parseCourseCsv(csv)).toThrow(/must be a number|length/i);
   });
 });

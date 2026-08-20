@@ -4,6 +4,8 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useRoutines, type RoutineListItem } from '@/lib/hooks/useRoutines';
 import { useTrainingSessions } from '@/lib/hooks/useTrainingSessions';
+import { useLeaks } from '@/lib/hooks/useLeaks';
+import { LeaksCard } from '@/components/training/LeaksCard';
 import { TRAINING_CATEGORIES, TRAINING_CATEGORY_LABELS } from '@/lib/training/categories';
 import type { TrainingCategory } from '@/types/database';
 
@@ -25,13 +27,15 @@ export default function TrainingScreen() {
   const { routines, loading: routinesLoading, error: routinesError, refetch: refetchRoutines } = useRoutines();
   const { sessions, loading: sessionsLoading, error: sessionsError, refetch: refetchSessions } =
     useTrainingSessions();
+  const { leaks, refetch: refetchLeaks } = useLeaks();
   const [expandedCategory, setExpandedCategory] = useState<TrainingCategory | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       refetchRoutines();
       refetchSessions();
-    }, [refetchRoutines, refetchSessions])
+      refetchLeaks();
+    }, [refetchRoutines, refetchSessions, refetchLeaks])
   );
 
   function routinesFor(category: TrainingCategory): RoutineListItem[] {
@@ -59,6 +63,14 @@ export default function TrainingScreen() {
                 <Text className="text-sm font-medium text-text-primary dark:text-text-primary-dark">
                   {routine.name}
                 </Text>
+              </Pressable>
+              <Pressable
+                testID={`routine-progress-${routine.id}`}
+                onPress={() => router.push(`/progress/${routine.id}`)}
+                className="mr-1 p-1"
+                hitSlop={8}
+              >
+                <Ionicons name="trending-up-outline" size={16} color="#4B5563" />
               </Pressable>
               <Pressable
                 testID={`edit-routine-${routine.id}`}
@@ -186,6 +198,12 @@ export default function TrainingScreen() {
               </Pressable>
             ))}
           </View>
+        </View>
+      )}
+
+      {leaks.length > 0 && (
+        <View className="mt-4 px-4">
+          <LeaksCard leaks={leaks} onPractice={(category) => setExpandedCategory(category)} />
         </View>
       )}
 
