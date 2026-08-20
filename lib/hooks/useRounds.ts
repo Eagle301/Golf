@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 
 export interface RoundListItem {
   id: string;
+  course_id: string;
   date_played: string;
   total_score: number | null;
   total_putts: number | null;
@@ -27,7 +28,7 @@ export function useRounds(): UseRoundsResult {
 
     const { data, error: fetchError } = await supabase
       .from('rounds')
-      .select('id, date_played, total_score, total_putts, courses(name)')
+      .select('id, course_id, date_played, total_score, total_putts, courses(name)')
       .order('date_played', { ascending: false });
 
     if (fetchError) {

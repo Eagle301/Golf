@@ -73,7 +73,7 @@ describe('useCourse', () => {
 
   it('loads an existing course, merging holes and mapping tee lengths to hole positions', async () => {
     const courseBuilder = createQueryBuilderMock({
-      data: { id: 'abc', name: 'Pebble', hole_count: 18 },
+      data: { id: 'abc', name: 'Pebble', club: 'GKG', hole_count: 18, latitude: 64.1, longitude: -21.9 },
       error: null,
     });
     const holesBuilder = createQueryBuilderMock({
@@ -103,7 +103,14 @@ describe('useCourse', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    expect(result.current.course).toEqual({ id: 'abc', name: 'Pebble', hole_count: 18 });
+    expect(result.current.course).toEqual({
+      id: 'abc',
+      name: 'Pebble',
+      club: 'GKG',
+      hole_count: 18,
+      latitude: 64.1,
+      longitude: -21.9,
+    });
     expect(result.current.holes).toHaveLength(18);
     expect(result.current.holes[0]).toEqual({ hole_number: 1, par: 4, stroke_index: 7 });
     expect(result.current.holes[1]).toEqual({ hole_number: 2, par: null, stroke_index: null });
@@ -183,6 +190,32 @@ describe('saveCourse', () => {
     ).rejects.toThrow(/length for hole 5/i);
   });
 
+  it('throws CourseValidationError when latitude is out of range', async () => {
+    await expect(
+      saveCourse({
+        name: 'Test',
+        hole_count: 18,
+        latitude: 95,
+        longitude: -21.9,
+        holes: validHoles,
+        tees: [validTee],
+      })
+    ).rejects.toThrow(/latitude/i);
+  });
+
+  it('throws CourseValidationError when only one coordinate is set', async () => {
+    await expect(
+      saveCourse({
+        name: 'Test',
+        hole_count: 18,
+        latitude: 64.1,
+        longitude: null,
+        holes: validHoles,
+        tees: [validTee],
+      })
+    ).rejects.toThrow(/both/i);
+  });
+
   it('throws CourseValidationError when a hole is missing par', async () => {
     const holes = [...validHoles];
     holes[0] = { ...holes[0], par: null };
@@ -217,11 +250,27 @@ describe('saveCourse', () => {
     (supabase.auth.getUser as jest.Mock).mockResolvedValue({ data: { user: { id: 'user-1' } } });
     const { courseBuilder, holesBuilder, teesBuilder, teeLengthsBuilder } = mockTables();
 
-    const id = await saveCourse({ name: 'New Course', hole_count: 18, holes: validHoles, tees: [validTee] });
+    const id = await saveCourse({
+      name: 'New Course',
+      club: 'GKG',
+      hole_count: 18,
+      latitude: 64.12,
+      longitude: -21.76,
+      holes: validHoles,
+      tees: [validTee],
+    });
 
     expect(id).toBe('course-1');
     expect(courseBuilder.insert).toHaveBeenCalledWith(
-      expect.objectContaining({ user_id: 'user-1', name: 'New Course', hole_count: 18, total_par: 72 })
+      expect.objectContaining({
+        user_id: 'user-1',
+        name: 'New Course',
+        club: 'GKG',
+        hole_count: 18,
+        total_par: 72,
+        latitude: 64.12,
+        longitude: -21.76,
+      })
     );
     expect(holesBuilder.upsert).toHaveBeenCalledWith(
       expect.arrayContaining([

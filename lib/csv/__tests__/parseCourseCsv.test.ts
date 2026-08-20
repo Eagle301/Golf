@@ -37,6 +37,18 @@ Hole,Par,Index,Gulur,Rauður
 18,4,9,326,295`;
 
 describe('parseCourseCsv', () => {
+  it('parses an optional Club row after the Name row', () => {
+    const csv = NINE_HOLE_CSV.replace('Name,Korpa Landið/Áin', 'Name,Korpa Landið/Áin\nClub,GR');
+    const result = parseCourseCsv(csv);
+
+    expect(result.club).toBe('GR');
+    expect(result.hole_count).toBe(9);
+  });
+
+  it('leaves club null when there is no Club row', () => {
+    expect(parseCourseCsv(NINE_HOLE_CSV).club).toBeNull();
+  });
+
   it('parses a 9-hole CSV with one tee', () => {
     const result = parseCourseCsv(NINE_HOLE_CSV);
 

@@ -17,6 +17,7 @@ function parseNumber(value: string | undefined, description: string): number {
 /**
  * Format:
  *   Name,<course name>
+ *   Club,<club name>                           (optional)
  *   Tee,<tee name>,<course rating>,<slope>     (one row per tee)
  *   Hole,Par,Index,<tee 1 name>,<tee 2 name>...
  *   <hole>,<par>,<index>,<length>,<length>...
@@ -32,8 +33,14 @@ export function parseCourseCsv(text: string): SaveCourseInput {
     throw new Error('"Name" row is missing a value.');
   }
 
-  const tees: TeeBoxInput[] = [];
+  let club: string | null = null;
   let lineIdx = 1;
+  if (splitLine(lines[lineIdx] ?? '')[0]?.toLowerCase() === 'club') {
+    club = splitLine(lines[lineIdx])[1] || null;
+    lineIdx++;
+  }
+
+  const tees: TeeBoxInput[] = [];
   while (lineIdx < lines.length && splitLine(lines[lineIdx])[0]?.toLowerCase() === 'tee') {
     const [, teeName, crStr, slopeStr] = splitLine(lines[lineIdx]);
     if (!teeName) {
@@ -103,6 +110,7 @@ export function parseCourseCsv(text: string): SaveCourseInput {
 
   return {
     name,
+    club,
     hole_count: holeCount as HoleCount,
     holes,
     tees,

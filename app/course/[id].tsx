@@ -39,6 +39,9 @@ export default function CourseFormScreen() {
   const { course, holes: initialHoles, tees: initialTees, loading, error: loadError } = useCourse(id);
 
   const [name, setName] = useState('');
+  const [club, setClub] = useState('');
+  const [latitude, setLatitude] = useState('');
+  const [longitude, setLongitude] = useState('');
   const [holeCount, setHoleCount] = useState<HoleCount>(18);
   const [holes, setHoles] = useState<HoleInput[]>(initialHoles);
   const [tees, setTees] = useState<TeeBoxInput[]>(initialTees);
@@ -55,8 +58,11 @@ export default function CourseFormScreen() {
   useEffect(() => {
     if (isImporting) return;
     setName(course.name);
+    setClub(course.club ?? '');
+    setLatitude(course.latitude != null ? String(course.latitude) : '');
+    setLongitude(course.longitude != null ? String(course.longitude) : '');
     setHoleCount(course.hole_count);
-  }, [isImporting, course.name, course.hole_count]);
+  }, [isImporting, course.name, course.club, course.latitude, course.longitude, course.hole_count]);
 
   useEffect(() => {
     if (isImporting) return;
@@ -69,6 +75,7 @@ export default function CourseFormScreen() {
     try {
       const imported = JSON.parse(importJson as string) as SaveCourseInput;
       setName(imported.name);
+      setClub(imported.club ?? '');
       setHoleCount(imported.hole_count);
       setHoles(imported.holes);
       setTees(imported.tees);
@@ -135,9 +142,14 @@ export default function CourseFormScreen() {
     setSaveError(null);
     setSaving(true);
     try {
+      const parsedLatitude = latitude.trim() === '' ? null : parseFloat(latitude);
+      const parsedLongitude = longitude.trim() === '' ? null : parseFloat(longitude);
       await saveCourse({
         id: course.id ?? undefined,
         name,
+        club: club.trim() || null,
+        latitude: Number.isNaN(parsedLatitude as number) ? null : parsedLatitude,
+        longitude: Number.isNaN(parsedLongitude as number) ? null : parsedLongitude,
         hole_count: holeCount,
         holes,
         tees,
@@ -193,6 +205,46 @@ export default function CourseFormScreen() {
           onChangeText={setName}
           placeholder="e.g. Pebble Beach"
         />
+
+        <Text className="mb-1 text-sm font-medium text-text-primary dark:text-text-primary-dark">
+          Golf club (optional)
+        </Text>
+        <TextInput
+          testID="course-club-input"
+          className="mb-4 rounded border border-gray-300 px-3 py-2 text-text-primary dark:border-border-dark dark:bg-surface-dark dark:text-text-primary-dark"
+          value={club}
+          onChangeText={setClub}
+          placeholder="e.g. GKG"
+        />
+
+        <View className="mb-4 flex-row">
+          <View className="mr-3 flex-1">
+            <Text className="mb-1 text-sm font-medium text-text-primary dark:text-text-primary-dark">
+              Latitude (optional)
+            </Text>
+            <TextInput
+              testID="course-latitude-input"
+              className="rounded border border-gray-300 px-3 py-2 text-text-primary dark:border-border-dark dark:bg-surface-dark dark:text-text-primary-dark"
+              keyboardType="numbers-and-punctuation"
+              value={latitude}
+              onChangeText={setLatitude}
+              placeholder="e.g. 64.086"
+            />
+          </View>
+          <View className="flex-1">
+            <Text className="mb-1 text-sm font-medium text-text-primary dark:text-text-primary-dark">
+              Longitude (optional)
+            </Text>
+            <TextInput
+              testID="course-longitude-input"
+              className="rounded border border-gray-300 px-3 py-2 text-text-primary dark:border-border-dark dark:bg-surface-dark dark:text-text-primary-dark"
+              keyboardType="numbers-and-punctuation"
+              value={longitude}
+              onChangeText={setLongitude}
+              placeholder="e.g. -21.878"
+            />
+          </View>
+        </View>
 
         <Text className="mb-1 text-sm font-medium text-text-primary dark:text-text-primary-dark">Holes</Text>
         <View className="mb-4 flex-row gap-3">

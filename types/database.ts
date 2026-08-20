@@ -18,8 +18,11 @@ export interface Course {
   id: string;
   user_id: string;
   name: string;
+  club: string | null;
   hole_count: 9 | 18;
   total_par: number | null;
+  latitude: number | null;
+  longitude: number | null;
   created_at: string;
 }
 

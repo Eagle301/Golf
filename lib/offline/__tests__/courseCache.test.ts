@@ -15,7 +15,7 @@ beforeEach(async () => {
 describe('refreshCourseCache', () => {
   it('caches courses with holes and tees, aligning tee lengths to hole order', async () => {
     const coursesBuilder = createQueryBuilderMock({
-      data: [{ id: 'c1', name: 'Pebble', hole_count: 9, total_par: 36 }],
+      data: [{ id: 'c1', name: 'Pebble', club: 'GKG', hole_count: 9, total_par: 36 }],
       error: null,
     });
     const holesBuilder = createQueryBuilderMock({
@@ -57,6 +57,7 @@ describe('refreshCourseCache', () => {
 
     expect(cached).toHaveLength(1);
     expect(cached[0].name).toBe('Pebble');
+    expect(cached[0].club).toBe('GKG');
     expect(cached[0].holes).toHaveLength(9);
     expect(cached[0].holes[0]).toEqual({ id: 'h1', hole_number: 1, par: 4, stroke_index: 1 });
     expect(cached[0].tees).toHaveLength(1);

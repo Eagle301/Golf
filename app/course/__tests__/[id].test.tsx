@@ -71,10 +71,41 @@ describe('CourseFormScreen', () => {
     expect(screen.getByTestId('save-course-button').props.accessibilityState.disabled).toBe(true);
   });
 
-  it('saves a new course with its tees and navigates back', async () => {
+  it('saves a new course with its club and tees and navigates back', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ id: 'new' });
     (useCoursesModule.useCourse as jest.Mock).mockReturnValue({
-      course: { id: null, name: '', hole_count: 18 },
+      course: { id: null, name: '', club: null, hole_count: 18 },
+      holes: validHoles,
+      tees: [validTee],
+      loading: false,
+      error: null,
+    });
+    (useCoursesModule.saveCourse as jest.Mock).mockResolvedValue('new-id');
+
+    render(<CourseFormScreen />);
+    fireEvent.changeText(screen.getByTestId('course-name-input'), 'Test Course');
+    fireEvent.changeText(screen.getByTestId('course-club-input'), 'GKG');
+    fireEvent.changeText(screen.getByTestId('course-latitude-input'), '64.12');
+    fireEvent.changeText(screen.getByTestId('course-longitude-input'), '-21.76');
+    fireEvent.press(screen.getByTestId('save-course-button'));
+
+    await waitFor(() => expect(back).toHaveBeenCalled());
+    expect(useCoursesModule.saveCourse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Test Course',
+        club: 'GKG',
+        latitude: 64.12,
+        longitude: -21.76,
+        holes: validHoles,
+        tees: [validTee],
+      })
+    );
+  });
+
+  it('saves null coordinates when the location fields are left empty', async () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ id: 'new' });
+    (useCoursesModule.useCourse as jest.Mock).mockReturnValue({
+      course: { id: null, name: '', club: null, hole_count: 18, latitude: null, longitude: null },
       holes: validHoles,
       tees: [validTee],
       loading: false,
@@ -88,11 +119,7 @@ describe('CourseFormScreen', () => {
 
     await waitFor(() => expect(back).toHaveBeenCalled());
     expect(useCoursesModule.saveCourse).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: 'Test Course',
-        holes: validHoles,
-        tees: [validTee],
-      })
+      expect.objectContaining({ latitude: null, longitude: null })
     );
   });
 

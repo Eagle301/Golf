@@ -20,6 +20,7 @@ export interface CachedTeeBox {
 export interface CachedCourse {
   id: string;
   name: string;
+  club: string | null;
   hole_count: 9 | 18;
   total_par: number | null;
   holes: CachedHole[];

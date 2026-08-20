@@ -13,7 +13,7 @@ export async function getCachedCourses(): Promise<CachedCourse[]> {
 export async function refreshCourseCache(): Promise<void> {
   const { data: courses, error: coursesError } = await supabase
     .from('courses')
-    .select('id, name, hole_count, total_par');
+    .select('id, name, club, hole_count, total_par');
 
   if (coursesError || !courses) return;
 
@@ -66,6 +66,7 @@ export async function refreshCourseCache(): Promise<void> {
     return {
       id: course.id,
       name: course.name,
+      club: course.club ?? null,
       hole_count: course.hole_count,
       total_par: course.total_par,
       holes: courseHoles,

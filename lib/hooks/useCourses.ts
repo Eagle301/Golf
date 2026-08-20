@@ -28,14 +28,20 @@ export interface CourseTeeSummary {
 export interface CourseListItem {
   id: string;
   name: string;
+  club: string | null;
   hole_count: HoleCount;
   total_par: number | null;
+  latitude: number | null;
+  longitude: number | null;
   tee_boxes: CourseTeeSummary[];
 }
 
 export interface SaveCourseInput {
   id?: string;
   name: string;
+  club?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   hole_count: HoleCount;
   holes: HoleInput[];
   tees: TeeBoxInput[];
@@ -79,7 +85,7 @@ export function useCourses(): UseCoursesResult {
     const { data, error: fetchError } = await supabase
       .from('courses')
       .select(
-        'id, name, hole_count, total_par, tee_boxes(name, course_rating, slope_rating, total_length_meters)'
+        'id, name, club, hole_count, total_par, latitude, longitude, tee_boxes(name, course_rating, slope_rating, total_length_meters)'
       )
       .order('created_at', { ascending: false });
 
@@ -111,7 +117,10 @@ export interface UseCourseResult {
   course: {
     id: string | null;
     name: string;
+    club: string | null;
     hole_count: HoleCount;
+    latitude: number | null;
+    longitude: number | null;
   };
   holes: HoleInput[];
   tees: TeeBoxInput[];
@@ -125,7 +134,10 @@ export function useCourse(id: string): UseCourseResult {
   const [course, setCourse] = useState<UseCourseResult['course']>({
     id: null,
     name: '',
+    club: null,
     hole_count: 18,
+    latitude: null,
+    longitude: null,
   });
   const [holes, setHoles] = useState<HoleInput[]>(blankHoles(18));
   const [tees, setTees] = useState<TeeBoxInput[]>([blankTee(18)]);
@@ -134,7 +146,7 @@ export function useCourse(id: string): UseCourseResult {
 
   const fetchCourse = useCallback(async () => {
     if (isNew) {
-      setCourse({ id: null, name: '', hole_count: 18 });
+      setCourse({ id: null, name: '', club: null, hole_count: 18, latitude: null, longitude: null });
       setHoles(blankHoles(18));
       setTees([blankTee(18)]);
       setLoading(false);
@@ -145,7 +157,7 @@ export function useCourse(id: string): UseCourseResult {
     setError(null);
 
     const [courseResult, holesResult, teesResult] = await Promise.all([
-      supabase.from('courses').select('id, name, hole_count').eq('id', id).single(),
+      supabase.from('courses').select('id, name, club, hole_count, latitude, longitude').eq('id', id).single(),
       supabase
         .from('holes')
         .select('id, hole_number, par, stroke_index')
@@ -165,7 +177,14 @@ export function useCourse(id: string): UseCourseResult {
       return;
     }
 
-    const courseData = courseResult.data as unknown as { id: string; name: string; hole_count: HoleCount };
+    const courseData = courseResult.data as unknown as {
+      id: string;
+      name: string;
+      club: string | null;
+      hole_count: HoleCount;
+      latitude: number | null;
+      longitude: number | null;
+    };
     setCourse(courseData);
 
     const fetchedHoles = (holesResult.data ?? []) as {
@@ -220,6 +239,18 @@ function validateSaveCourseInput(input: SaveCourseInput): void {
   }
   if (input.holes.length !== input.hole_count) {
     throw new CourseValidationError(`All ${input.hole_count} holes must be filled in.`);
+  }
+
+  const hasLat = input.latitude != null;
+  const hasLng = input.longitude != null;
+  if (hasLat !== hasLng) {
+    throw new CourseValidationError('Latitude and longitude must both be set (or both left empty).');
+  }
+  if (hasLat && (input.latitude! < -90 || input.latitude! > 90)) {
+    throw new CourseValidationError('Latitude must be between -90 and 90.');
+  }
+  if (hasLng && (input.longitude! < -180 || input.longitude! > 180)) {
+    throw new CourseValidationError('Longitude must be between -180 and 180.');
   }
 
   const usedIndexes = new Set<number>();
@@ -287,8 +318,11 @@ export async function saveCourse(input: SaveCourseInput): Promise<string> {
       .insert({
         user_id: user.id,
         name: input.name,
+        club: input.club?.trim() || null,
         hole_count: input.hole_count,
         total_par: totalPar,
+        latitude: input.latitude ?? null,
+        longitude: input.longitude ?? null,
       })
       .select('id')
       .single();
@@ -299,8 +333,11 @@ export async function saveCourse(input: SaveCourseInput): Promise<string> {
     const { error } = await (supabase.from('courses') as any)
       .update({
         name: input.name,
+        club: input.club?.trim() || null,
         hole_count: input.hole_count,
         total_par: totalPar,
+        latitude: input.latitude ?? null,
+        longitude: input.longitude ?? null,
       })
       .eq('id', courseId);
 

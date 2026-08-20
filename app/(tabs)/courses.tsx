@@ -1,14 +1,54 @@
 import { useCallback, useState } from 'react';
-import { View, Text, FlatList, Pressable, ActivityIndicator, RefreshControl, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  FlatList,
+  Pressable,
+  ActivityIndicator,
+  RefreshControl,
+  Platform,
+  Modal,
+} from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCourses } from '@/lib/hooks/useCourses';
 import { Button } from '@/components/ui/Button';
+import { CourseMap } from '@/components/course/CourseMap';
 import { parseCourseCsv } from '@/lib/csv/parseCourseCsv';
+import { getCachedCourses } from '@/lib/offline/courseCache';
+import { setActiveRound } from '@/lib/offline/activeRound';
+import { generateLocalId } from '@/lib/offline/localId';
+import { buildActiveRound } from '@/lib/offline/buildActiveRound';
+import { getCurrentHandicap } from '@/lib/hooks/useProfile';
+import type { CachedCourse, CachedTeeBox } from '@/lib/offline/types';
 
 export default function CoursesScreen() {
   const { courses, loading, error, refetch } = useCourses();
   const router = useRouter();
   const [importError, setImportError] = useState<string | null>(null);
+  const [view, setView] = useState<'list' | 'map'>('list');
+  const [teePickerCourse, setTeePickerCourse] = useState<CachedCourse | null>(null);
+
+  async function startRound(course: CachedCourse, tee: CachedTeeBox) {
+    const handicap = await getCurrentHandicap();
+    const round = buildActiveRound(course, tee, {
+      localId: generateLocalId(),
+      handicap,
+      datePlayed: new Date().toISOString().slice(0, 10),
+    });
+    setTeePickerCourse(null);
+    await setActiveRound(round);
+    router.push('/round/active');
+  }
+
+  async function handlePlayCourse(courseId: string) {
+    const cached = (await getCachedCourses()).find((c) => c.id === courseId);
+    if (!cached || cached.tees.length === 0) return;
+    if (cached.tees.length === 1) {
+      await startRound(cached, cached.tees[0]);
+      return;
+    }
+    setTeePickerCourse(cached);
+  }
 
   function handleImportPress() {
     if (Platform.OS !== 'web') return;
@@ -65,6 +105,15 @@ export default function CoursesScreen() {
       <View className="flex-row items-center justify-between px-4 pt-4">
         <Text className="text-xl font-semibold text-text-primary dark:text-text-primary-dark">Courses</Text>
         <View className="flex-row items-center gap-3">
+          <Pressable
+            testID="courses-view-toggle"
+            onPress={() => setView((prev) => (prev === 'list' ? 'map' : 'list'))}
+            className="rounded-xl bg-brand px-5 py-2 dark:bg-accent-gold-dark"
+          >
+            <Text className="text-base font-semibold text-white dark:text-gray-900">
+              {view === 'list' ? 'Map' : 'List'}
+            </Text>
+          </Pressable>
           {Platform.OS === 'web' && (
             <Pressable testID="import-csv-button" onPress={handleImportPress}>
               <Text className="font-medium text-brand dark:text-accent-gold-dark">Import CSV</Text>
@@ -86,7 +135,34 @@ export default function CoursesScreen() {
         </Text>
       )}
 
-      {courses.length === 0 ? (
+      {view === 'map' ? (
+        (() => {
+          const markers = courses
+            .filter((c) => c.latitude != null && c.longitude != null)
+            .map((c) => ({
+              id: c.id,
+              name: c.name,
+              club: c.club,
+              latitude: c.latitude as number,
+              longitude: c.longitude as number,
+            }));
+          const missing = courses.length - markers.length;
+          return (
+            <View className="mt-3 flex-1">
+              <CourseMap
+                markers={markers}
+                onPlayCourse={handlePlayCourse}
+                onEditCourse={(id) => router.push(`/course/${id}`)}
+              />
+              {missing > 0 && (
+                <Text className="px-4 py-2 text-sm text-text-secondary dark:text-text-secondary-dark">
+                  {missing} course{missing === 1 ? ' has' : 's have'} no location yet.
+                </Text>
+              )}
+            </View>
+          );
+        })()
+      ) : courses.length === 0 ? (
         <View className="flex-1 items-center justify-center px-6">
           <Text className="mb-4 text-center text-text-secondary dark:text-text-secondary-dark">
             No courses yet.
@@ -125,6 +201,40 @@ export default function CoursesScreen() {
           )}
         />
       )}
+
+      <Modal
+        visible={teePickerCourse !== null}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setTeePickerCourse(null)}
+      >
+        <Pressable
+          testID="map-tee-backdrop"
+          className="flex-1 items-center justify-center bg-black/50 px-6"
+          onPress={() => setTeePickerCourse(null)}
+        >
+          <View className="w-full rounded-2xl bg-background p-4 dark:bg-background-dark">
+            <Text className="mb-3 text-lg font-semibold text-text-primary dark:text-text-primary-dark">
+              Choose a tee at {teePickerCourse?.name}
+            </Text>
+            {teePickerCourse?.tees.map((tee) => (
+              <Pressable
+                key={tee.id}
+                testID={`map-tee-${tee.id}`}
+                onPress={() => startRound(teePickerCourse, tee)}
+                className="mb-2 rounded-lg bg-brand/10 px-4 py-3 dark:bg-accent-gold-dark/10"
+              >
+                <Text className="font-medium text-text-primary dark:text-text-primary-dark">
+                  {tee.name} · {tee.total_length_meters ?? '-'} m
+                  {tee.course_rating != null && tee.slope_rating != null
+                    ? ` · CR ${tee.course_rating}/${tee.slope_rating}`
+                    : ''}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }

@@ -43,6 +43,7 @@ const holes = Array.from({ length: 9 }, (_, i) => ({
 const singleTeeCourse: CachedCourse = {
   id: 'c1',
   name: 'One Tee GC',
+  club: null,
   hole_count: 9,
   total_par: 36,
   holes,
@@ -83,11 +84,51 @@ describe('RoundsScreen tee selection', () => {
     (useRouter as jest.Mock).mockReturnValue({ push });
   });
 
+  it('hides the course list behind the Start a round button', async () => {
+    (getCachedCourses as jest.Mock).mockResolvedValue([singleTeeCourse]);
+
+    render(<RoundsScreen />);
+    await waitFor(() => expect(screen.getByTestId('start-round-button')).toBeTruthy());
+
+    expect(screen.queryByTestId('start-round-c1')).toBeNull();
+    fireEvent.press(screen.getByTestId('start-round-button'));
+    expect(screen.getByTestId('start-round-c1')).toBeTruthy();
+  });
+
+  it('filters the course list from the search bar', async () => {
+    (getCachedCourses as jest.Mock).mockResolvedValue([singleTeeCourse, twoTeeCourse]);
+
+    render(<RoundsScreen />);
+    await waitFor(() => expect(screen.getByTestId('start-round-button')).toBeTruthy());
+    fireEvent.press(screen.getByTestId('start-round-button'));
+
+    expect(screen.getByTestId('start-round-c1')).toBeTruthy();
+    expect(screen.getByTestId('start-round-c2')).toBeTruthy();
+
+    fireEvent.changeText(screen.getByTestId('course-search-input'), 'two');
+
+    expect(screen.queryByTestId('start-round-c1')).toBeNull();
+    expect(screen.getByTestId('start-round-c2')).toBeTruthy();
+  });
+
+  it('closes the course popup without starting when dismissed', async () => {
+    (getCachedCourses as jest.Mock).mockResolvedValue([singleTeeCourse]);
+
+    render(<RoundsScreen />);
+    await waitFor(() => expect(screen.getByTestId('start-round-button')).toBeTruthy());
+    fireEvent.press(screen.getByTestId('start-round-button'));
+    fireEvent.press(screen.getByTestId('start-round-close'));
+
+    expect(screen.queryByTestId('start-round-c1')).toBeNull();
+    expect(setActiveRound).not.toHaveBeenCalled();
+  });
+
   it('starts a round immediately for a single-tee course, snapshotting the tee', async () => {
     (getCachedCourses as jest.Mock).mockResolvedValue([singleTeeCourse]);
 
     render(<RoundsScreen />);
-    await waitFor(() => expect(screen.getByTestId('start-round-c1')).toBeTruthy());
+    await waitFor(() => expect(screen.getByTestId('start-round-button')).toBeTruthy());
+    fireEvent.press(screen.getByTestId('start-round-button'));
     fireEvent.press(screen.getByTestId('start-round-c1'));
 
     await waitFor(() => expect(push).toHaveBeenCalledWith('/round/active'));
@@ -108,7 +149,8 @@ describe('RoundsScreen tee selection', () => {
     (getCachedCourses as jest.Mock).mockResolvedValue([twoTeeCourse]);
 
     render(<RoundsScreen />);
-    await waitFor(() => expect(screen.getByTestId('start-round-c2')).toBeTruthy());
+    await waitFor(() => expect(screen.getByTestId('start-round-button')).toBeTruthy());
+    fireEvent.press(screen.getByTestId('start-round-button'));
     fireEvent.press(screen.getByTestId('start-round-c2'));
 
     expect(setActiveRound).not.toHaveBeenCalled();
