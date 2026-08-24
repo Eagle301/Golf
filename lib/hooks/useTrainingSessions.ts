@@ -4,6 +4,7 @@ import type { TrainingCategory } from '@/types/database';
 
 export interface TrainingSessionListItem {
   id: string;
+  routine_id: string;
   date_played: string;
   note: string | null;
   training_routines: { name: string; category: TrainingCategory } | null;
@@ -27,7 +28,7 @@ export function useTrainingSessions(): UseTrainingSessionsResult {
 
     const { data, error: fetchError } = await supabase
       .from('training_sessions')
-      .select('id, date_played, note, training_routines(name, category)')
+      .select('id, routine_id, date_played, note, training_routines(name, category)')
       .order('date_played', { ascending: false });
 
     if (fetchError) {

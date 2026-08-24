@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import type { DrillResultType } from '@/types/database';
 
 export interface TrainingSessionDetailDrill {
   drill_id: string;
   name: string;
   target_value: number | null;
   photo_url: string | null;
+  video_url: string | null;
+  result_type: DrillResultType;
   value: number | null;
 }
 
@@ -45,7 +48,7 @@ export function useTrainingSession(sessionId: string): UseTrainingSessionResult 
 
     const { data: drillLogs, error: drillLogsError } = await supabase
       .from('training_drill_logs')
-      .select('value, training_drills(id, name, target_value, photo_url, sort_order)')
+      .select('value, training_drills(id, name, target_value, photo_url, video_url, result_type, sort_order)')
       .eq('session_id', sessionId);
 
     if (drillLogsError) {
@@ -61,6 +64,8 @@ export function useTrainingSession(sessionId: string): UseTrainingSessionResult 
         name: log.training_drills.name,
         target_value: log.training_drills.target_value,
         photo_url: log.training_drills.photo_url,
+        video_url: log.training_drills.video_url,
+        result_type: log.training_drills.result_type,
         value: log.value,
         sort_order: log.training_drills.sort_order,
       }))

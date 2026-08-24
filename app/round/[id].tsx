@@ -146,7 +146,8 @@ export default function LiveRoundScreen() {
       }));
       const totalScore = finalHoleLogs.reduce((sum, h) => sum + (h.score ?? 0), 0);
       const totalPutts = finalHoleLogs.reduce((sum, h) => sum + (h.putts ?? 0), 0);
-      const bruttoScore = calculateBruttoScore(finalHoleLogs, courseHandicap, activeRound.hole_count);
+      const nineSiEven = activeRound.nine_si_even ?? false;
+      const bruttoScore = calculateBruttoScore(finalHoleLogs, courseHandicap, activeRound.hole_count, nineSiEven);
       const scoreDifferential =
         activeRound.course_rating != null && activeRound.slope_rating != null
           ? activeRound.hole_count === 9
@@ -157,7 +158,8 @@ export default function LiveRoundScreen() {
                 9,
                 calculateNetParForNine(
                   finalHoleLogs.reduce((sum, h) => sum + h.par, 0),
-                  courseHandicap
+                  courseHandicap,
+                  nineSiEven
                 )
               )
             : calculateRoundDifferential(bruttoScore, activeRound.course_rating, activeRound.slope_rating, 18)
@@ -300,7 +302,7 @@ export default function LiveRoundScreen() {
                 testID="overview-total-net-par"
                 className="text-lg font-semibold text-text-primary dark:text-text-primary-dark"
               >
-                {calculateTotalNetPar(holeLogs, courseHandicap, hole_count)}
+                {calculateTotalNetPar(holeLogs, courseHandicap, hole_count, activeRound.nine_si_even ?? false)}
               </Text>
             </View>
             <View>
@@ -314,7 +316,11 @@ export default function LiveRoundScreen() {
             </View>
           </Card>
 
-          <RoundOverviewScorecard holes={holeLogs} courseHandicap={courseHandicap} />
+          <RoundOverviewScorecard
+            holes={holeLogs}
+            courseHandicap={courseHandicap}
+            nineSiEven={activeRound.nine_si_even ?? false}
+          />
 
           <Button
             testID="start-round-button"
@@ -342,7 +348,7 @@ export default function LiveRoundScreen() {
 
       const extraStrokes =
         courseHandicap != null && hole.stroke_index != null
-          ? strokesForHole(courseHandicap, hole.stroke_index, hole_count)
+          ? strokesForHole(courseHandicap, hole.stroke_index, hole_count, activeRound.nine_si_even ?? false)
           : 0;
       const adjustedPar = hole.par + extraStrokes;
       const points = hole.score !== null ? calculatePoints(hole.score - extraStrokes, hole.par) : null;

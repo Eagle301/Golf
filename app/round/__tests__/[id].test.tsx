@@ -153,8 +153,9 @@ describe('LiveRoundScreen review panel', () => {
     expect(screen.getByTestId('scorecard-hole-2')).toBeTruthy();
   });
 
-  // CHC = HC*(slope/113) + (CR/2 - totalPar) = 1*1 + (8-8) = 1, since hole_count is 9.
-  const CHC_ONE_OVERRIDES = { handicap_at_start: 1, course_rating: 16, slope_rating: 113, total_par: 8 };
+  // CHC = HC*(slope/113) + (CR - totalPar*2) = 2*1 + (16-16) = 2, since hole_count is 9;
+  // the played nine gets floor(2/2) = 1 stroke, landing on stroke_index 1.
+  const CHC_ONE_OVERRIDES = { handicap_at_start: 2, course_rating: 16, slope_rating: 113, total_par: 8 };
 
   it('re-syncs from storage on focus, so a hole jump made from another screen (e.g. Scorecard) is picked up', () => {
     (useActiveRound as jest.Mock).mockReturnValue({
@@ -172,7 +173,7 @@ describe('LiveRoundScreen review panel', () => {
 
   it('shows the live Net Par total on the overview panel', () => {
     (useActiveRound as jest.Mock).mockReturnValue({
-      // CHC=1: hole 1 (stroke_index 1) gets a stroke -> net par 5; hole 2 (index 2) doesn't -> net par 4.
+      // CHC=2: hole 1 (stroke_index 1) gets a stroke -> net par 5; hole 2 (index 2) doesn't -> net par 4.
       activeRound: makeActiveRound({ currentHoleIndex: -1, ...CHC_ONE_OVERRIDES }),
       loading: false,
       updateActiveRound,
@@ -213,7 +214,7 @@ describe('LiveRoundScreen review panel', () => {
 
     render(<LiveRoundScreen />);
 
-    // CHC=1 gives hole 1 a stroke -> net score 4-1=3, par 4 -> net birdie -> 3 points.
+    // CHC=2 gives hole 1 a stroke -> net score 4-1=3, par 4 -> net birdie -> 3 points.
     expect(screen.getByTestId('hole-points-badge').props.children).toBe('³');
   });
 

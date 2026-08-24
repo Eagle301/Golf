@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
+import { parseEmbeddedPath } from '@/lib/holeGeometry';
 import type { CachedCourse, CachedHole, CachedTeeBox } from './types';
 
 const CACHED_COURSES_KEY = 'golf.cachedCourses';
@@ -13,13 +14,13 @@ export async function getCachedCourses(): Promise<CachedCourse[]> {
 export async function refreshCourseCache(): Promise<void> {
   const { data: courses, error: coursesError } = await supabase
     .from('courses')
-    .select('id, name, club, hole_count, total_par');
+    .select('id, name, club, hole_count, total_par, nine_si_even, latitude, longitude');
 
   if (coursesError || !courses) return;
 
   const { data: holes, error: holesError } = await supabase
     .from('holes')
-    .select('id, course_id, hole_number, par, stroke_index');
+    .select('id, course_id, hole_number, par, stroke_index, hole_geometry(points)');
 
   if (holesError || !holes) return;
 
@@ -40,6 +41,7 @@ export async function refreshCourseCache(): Promise<void> {
         hole_number: h.hole_number,
         par: h.par,
         stroke_index: h.stroke_index,
+        path: parseEmbeddedPath(h.hole_geometry),
       }));
 
     const holeIndexById = new Map(courseHoles.map((h, i) => [h.id, i]));
@@ -69,6 +71,9 @@ export async function refreshCourseCache(): Promise<void> {
       club: course.club ?? null,
       hole_count: course.hole_count,
       total_par: course.total_par,
+      nine_si_even: course.nine_si_even ?? false,
+      latitude: course.latitude ?? null,
+      longitude: course.longitude ?? null,
       holes: courseHoles,
       tees,
     };

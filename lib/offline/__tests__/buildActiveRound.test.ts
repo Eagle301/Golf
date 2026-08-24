@@ -48,6 +48,7 @@ describe('buildActiveRound', () => {
       date_played: '2026-08-20',
       currentHoleIndex: -1,
     });
+    expect(round.nine_si_even).toBe(false);
     expect(round.holeLogs).toHaveLength(9);
     expect(round.holeLogs[0]).toMatchObject({
       hole_number: 1,
@@ -61,6 +62,16 @@ describe('buildActiveRound', () => {
     });
   });
 
+  it('carries the even-SI flag into the round snapshot', () => {
+    const evenCourse = { ...course, nine_si_even: true };
+    const round = buildActiveRound(evenCourse, tee, {
+      localId: 'local_x',
+      handicap: 12.4,
+      datePlayed: '2026-08-20',
+    });
+    expect(round.nine_si_even).toBe(true);
+  });
+
   it('leaves a hole length null when the tee has no length for it', () => {
     const shortTee = { ...tee, lengths: [330] };
     const round = buildActiveRound(course, shortTee, {
@@ -69,5 +80,29 @@ describe('buildActiveRound', () => {
       datePlayed: '2026-08-20',
     });
     expect(round.holeLogs[1].length_meters).toBeNull();
+  });
+});
+
+describe('buildActiveRound course location', () => {
+  it('carries the course coordinates into the round so it can map itself offline', () => {
+    const round = buildActiveRound(
+      { ...course, latitude: 64.14977, longitude: -21.76237 },
+      tee,
+      { localId: 'local_x', handicap: null, datePlayed: '2026-08-20' }
+    );
+
+    expect(round.latitude).toBe(64.14977);
+    expect(round.longitude).toBe(-21.76237);
+  });
+
+  it('leaves the coordinates null for a course that has none', () => {
+    const round = buildActiveRound(course, tee, {
+      localId: 'local_x',
+      handicap: null,
+      datePlayed: '2026-08-20',
+    });
+
+    expect(round.latitude).toBeNull();
+    expect(round.longitude).toBeNull();
   });
 });

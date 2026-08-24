@@ -35,19 +35,31 @@ export interface ScorecardRoundSummary {
 interface ScorecardProps {
   holes: ScorecardHole[];
   courseHandicap: number | null;
+  /** True for nines carrying the even 18-hole stroke indexes (see calculations.strokesForHole). */
+  nineSiEven?: boolean;
   /** When given, hole numbers become tappable and call back with the tapped hole_number. */
   onSelectHole?: (holeNumber: number) => void;
   /** When given, renders Course Handicap / Handicap Index / Score Differential below the other stats - for a completed round's detail view. */
   roundSummary?: ScorecardRoundSummary;
 }
 
-function netScore(hole: ScorecardHole, courseHandicap: number | null, holeCount: 9 | 18): number | null {
+function netScore(
+  hole: ScorecardHole,
+  courseHandicap: number | null,
+  holeCount: 9 | 18,
+  nineSiEven: boolean
+): number | null {
   if (hole.score === null || hole.stroke_index === null || courseHandicap === null) return null;
-  return hole.score - strokesForHole(courseHandicap, hole.stroke_index, holeCount);
+  return hole.score - strokesForHole(courseHandicap, hole.stroke_index, holeCount, nineSiEven);
 }
 
-function points(hole: ScorecardHole, courseHandicap: number | null, holeCount: 9 | 18): number | null {
-  const net = netScore(hole, courseHandicap, holeCount);
+function points(
+  hole: ScorecardHole,
+  courseHandicap: number | null,
+  holeCount: 9 | 18,
+  nineSiEven: boolean
+): number | null {
+  const net = netScore(hole, courseHandicap, holeCount, nineSiEven);
   return net === null ? null : calculatePoints(net, hole.par);
 }
 
@@ -65,12 +77,14 @@ function HoleRange({
   holes,
   courseHandicap,
   holeCount,
+  nineSiEven,
   label,
   onSelectHole,
 }: {
   holes: ScorecardHole[];
   courseHandicap: number | null;
   holeCount: 9 | 18;
+  nineSiEven: boolean;
   label: string;
   onSelectHole?: (holeNumber: number) => void;
 }) {
@@ -78,8 +92,8 @@ function HoleRange({
   const totalScore = holes.every((h) => h.score !== null)
     ? holes.reduce((sum, h) => sum + (h.score ?? 0), 0)
     : null;
-  const totalNet = holes.every((h) => netScore(h, courseHandicap, holeCount) !== null)
-    ? holes.reduce((sum, h) => sum + (netScore(h, courseHandicap, holeCount) ?? 0), 0)
+  const totalNet = holes.every((h) => netScore(h, courseHandicap, holeCount, nineSiEven) !== null)
+    ? holes.reduce((sum, h) => sum + (netScore(h, courseHandicap, holeCount, nineSiEven) ?? 0), 0)
     : null;
 
   return (
@@ -110,7 +124,7 @@ function HoleRange({
 
         {holes.map((h) => {
           const style = scoreStyle(h);
-          const pts = points(h, courseHandicap, holeCount);
+          const pts = points(h, courseHandicap, holeCount, nineSiEven);
           return (
             <Pressable
               key={h.hole_number}
@@ -157,7 +171,7 @@ function HoleRange({
                       testID={`scorecard-net-${h.hole_number}`}
                       className="text-center text-xs text-text-secondary dark:text-text-secondary-dark"
                     >
-                      {netScore(h, courseHandicap, holeCount) ?? '-'}
+                      {netScore(h, courseHandicap, holeCount, nineSiEven) ?? '-'}
                     </Text>
                   </View>
                 </View>
@@ -194,7 +208,7 @@ function HoleRange({
   );
 }
 
-export function Scorecard({ holes, courseHandicap, onSelectHole, roundSummary }: ScorecardProps) {
+export function Scorecard({ holes, courseHandicap, nineSiEven = false, onSelectHole, roundSummary }: ScorecardProps) {
   const [summaryExpanded, setSummaryExpanded] = useState(false);
   const front9 = holes.filter((h) => h.hole_number <= 9);
   const back9 = holes.filter((h) => h.hole_number > 9);
@@ -205,15 +219,15 @@ export function Scorecard({ holes, courseHandicap, onSelectHole, roundSummary }:
   const allScored = holes.length > 0 && holes.every((h) => h.score !== null);
   const grossTotal = allScored ? holes.reduce((sum, h) => sum + (h.score ?? 0), 0) : null;
   const netTotal =
-    allScored && holes.every((h) => netScore(h, courseHandicap, holeCount) !== null)
-      ? holes.reduce((sum, h) => sum + (netScore(h, courseHandicap, holeCount) ?? 0), 0)
+    allScored && holes.every((h) => netScore(h, courseHandicap, holeCount, nineSiEven) !== null)
+      ? holes.reduce((sum, h) => sum + (netScore(h, courseHandicap, holeCount, nineSiEven) ?? 0), 0)
       : null;
   const totalPoints =
-    allScored && holes.every((h) => points(h, courseHandicap, holeCount) !== null)
-      ? holes.reduce((sum, h) => sum + (points(h, courseHandicap, holeCount) ?? 0), 0)
+    allScored && holes.every((h) => points(h, courseHandicap, holeCount, nineSiEven) !== null)
+      ? holes.reduce((sum, h) => sum + (points(h, courseHandicap, holeCount, nineSiEven) ?? 0), 0)
       : null;
-  const bruttoTotal = allScored ? calculateBruttoScore(holes, courseHandicap, holeCount) : null;
-  const netParForNine = isNineHoles ? calculateNetParForNine(totalPar, courseHandicap) : null;
+  const bruttoTotal = allScored ? calculateBruttoScore(holes, courseHandicap, holeCount, nineSiEven) : null;
+  const netParForNine = isNineHoles ? calculateNetParForNine(totalPar, courseHandicap, nineSiEven) : null;
   const bruttoCorrectedForEighteen =
     bruttoTotal !== null && netParForNine !== null ? bruttoTotal + netParForNine : null;
 
@@ -241,6 +255,7 @@ export function Scorecard({ holes, courseHandicap, onSelectHole, roundSummary }:
           holes={front9}
           courseHandicap={courseHandicap}
           holeCount={holeCount}
+          nineSiEven={nineSiEven}
           label="Out"
           onSelectHole={onSelectHole}
         />
@@ -250,6 +265,7 @@ export function Scorecard({ holes, courseHandicap, onSelectHole, roundSummary }:
           holes={back9}
           courseHandicap={courseHandicap}
           holeCount={holeCount}
+          nineSiEven={nineSiEven}
           label="In"
           onSelectHole={onSelectHole}
         />

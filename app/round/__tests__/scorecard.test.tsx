@@ -205,3 +205,63 @@ describe('ScorecardScreen', () => {
     expect(replace).not.toHaveBeenCalled();
   });
 });
+
+describe('ActiveRoundScorecard map button', () => {
+  const push = jest.fn();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (useRouter as jest.Mock).mockReturnValue({ push, back: jest.fn(), replace: jest.fn() });
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ id: 'active' });
+  });
+
+  function mockRoundAt(latitude: number | null, longitude: number | null) {
+    (useActiveRound as jest.Mock).mockReturnValue({
+      activeRound: { ...makeActiveRound(), latitude, longitude },
+      loading: false,
+      updateActiveRound: jest.fn(),
+    });
+  }
+
+  it('offers the map as a full-width labelled button below the card', () => {
+    mockRoundAt(64.14977, -21.76237);
+
+    render(<ScorecardScreen />);
+
+    expect(screen.getByText('View course map')).toBeTruthy();
+  });
+
+  it('opens the aerial view for the course being played', () => {
+    mockRoundAt(64.14977, -21.76237);
+
+    render(<ScorecardScreen />);
+    fireEvent.press(screen.getByTestId('scorecard-map-button'));
+
+    expect(push).toHaveBeenCalledWith({
+      pathname: '/course/aerial',
+      // The course id goes too, so the hole lines drawn for this course show
+      // up on the map mid-round.
+      params: { id: 'course-1', name: 'Test Course', lat: '64.14977', lng: '-21.76237' },
+    });
+  });
+
+  it('hides the map button for a course with no coordinates', () => {
+    mockRoundAt(null, null);
+
+    render(<ScorecardScreen />);
+
+    expect(screen.queryByTestId('scorecard-map-button')).toBeNull();
+  });
+
+  it('hides the map button for a round started before coordinates were stored', () => {
+    (useActiveRound as jest.Mock).mockReturnValue({
+      activeRound: makeActiveRound(),
+      loading: false,
+      updateActiveRound: jest.fn(),
+    });
+
+    render(<ScorecardScreen />);
+
+    expect(screen.queryByTestId('scorecard-map-button')).toBeNull();
+  });
+});

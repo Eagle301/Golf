@@ -14,9 +14,16 @@ beforeEach(() => {
 describe('useTrainingSessions', () => {
   it('loads sessions from supabase', async () => {
     const mockSessions = [
-      { id: '1', date_played: '2026-01-01', note: null, training_routines: { name: 'Ladder', category: 'putts' } },
+      {
+        id: '1',
+        routine_id: 'r1',
+        date_played: '2026-01-01',
+        note: null,
+        training_routines: { name: 'Ladder', category: 'putts' },
+      },
     ];
-    (supabase.from as jest.Mock).mockReturnValue(createQueryBuilderMock({ data: mockSessions, error: null }));
+    const builder = createQueryBuilderMock({ data: mockSessions, error: null });
+    (supabase.from as jest.Mock).mockReturnValue(builder);
 
     const { result } = renderHook(() => useTrainingSessions());
 
@@ -24,6 +31,7 @@ describe('useTrainingSessions', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(result.current.sessions).toEqual(mockSessions);
+    expect(builder.select).toHaveBeenCalledWith('id, routine_id, date_played, note, training_routines(name, category)');
     expect(result.current.error).toBeNull();
   });
 

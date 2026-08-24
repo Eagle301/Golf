@@ -7,6 +7,10 @@ jest.mock('@/lib/hooks/useTrainingSession', () => ({
   useTrainingSession: jest.fn(),
   deleteTrainingSession: jest.fn(),
 }));
+jest.mock('react-native-youtube-iframe', () => {
+  const { View } = require('react-native');
+  return { __esModule: true, default: (props: any) => <View testID="youtube-player" {...props} /> };
+});
 
 import { render, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -39,8 +43,42 @@ describe('SessionDetailScreen', () => {
         datePlayed: '2026-01-01',
         note: 'Felt solid today',
         drills: [
-          { drill_id: 'd1', name: '3ft putts', target_value: 10, photo_url: null, value: 8 },
-          { drill_id: 'd2', name: '6ft putts', target_value: 8, photo_url: null, value: 6 },
+          {
+            drill_id: 'd1',
+            name: '3ft putts',
+            target_value: 10,
+            photo_url: null,
+            video_url: 'https://youtu.be/dQw4w9WgXcQ?t=95',
+            result_type: 'target',
+            value: 8,
+          },
+          {
+            drill_id: 'd2',
+            name: 'Chips hit',
+            target_value: null,
+            photo_url: null,
+            video_url: null,
+            result_type: 'count',
+            value: 6,
+          },
+          {
+            drill_id: 'd3',
+            name: 'Full routine',
+            target_value: null,
+            photo_url: null,
+            video_url: null,
+            result_type: 'check',
+            value: 1,
+          },
+          {
+            drill_id: 'd4',
+            name: 'Skipped drill',
+            target_value: null,
+            photo_url: null,
+            video_url: null,
+            result_type: 'check',
+            value: null,
+          },
         ],
       },
       loading: false,
@@ -52,6 +90,13 @@ describe('SessionDetailScreen', () => {
     expect(screen.getByText('2026-01-01')).toBeTruthy();
     expect(screen.getByText('Felt solid today')).toBeTruthy();
     expect(screen.getByTestId('session-detail-drill-d1')).toBeTruthy();
+    expect(screen.getByTestId('session-detail-drill-d1-video-thumbnail')).toBeTruthy();
+    expect(screen.queryByTestId('session-detail-drill-d2-video-thumbnail')).toBeNull();
+    // Each result renders to match its drill type: x/y, plain count, done, skipped.
+    expect(screen.getByText('8 / 10')).toBeTruthy();
+    expect(screen.getByText('6')).toBeTruthy();
+    expect(screen.getByTestId('session-detail-drill-d3-checked')).toBeTruthy();
+    expect(screen.queryByTestId('session-detail-drill-d4-checked')).toBeNull();
   });
 
   it('deletes the session and navigates back to Training on confirm', async () => {

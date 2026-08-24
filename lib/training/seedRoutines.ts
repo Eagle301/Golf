@@ -155,6 +155,7 @@ export async function seedStarterRoutines(userId: string): Promise<void> {
         routine_id: routineId,
         name: drill.name,
         target_value: drill.target_value,
+        result_type: 'target',
         sort_order: index,
       }))
     );

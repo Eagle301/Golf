@@ -21,6 +21,7 @@ export interface RoundDetail {
   courseRating: number | null;
   slopeRating: number | null;
   holeCount: 9 | 18;
+  nineSiEven: boolean;
   handicapAtTime: number | null;
   scoreDifferential: number | null;
   holes: RoundDetailHole[];
@@ -44,7 +45,7 @@ export function useRoundDetail(roundId: string): UseRoundDetailResult {
     const { data: round, error: roundError } = await supabase
       .from('rounds')
       .select(
-        'handicap_at_time, score_differential, tee_boxes(name, course_rating, slope_rating), courses(name, total_par, hole_count)'
+        'handicap_at_time, score_differential, tee_boxes(name, course_rating, slope_rating), courses(name, total_par, hole_count, nine_si_even)'
       )
       .eq('id', roundId)
       .single();
@@ -90,6 +91,7 @@ export function useRoundDetail(roundId: string): UseRoundDetailResult {
       courseRating: tee?.course_rating ?? null,
       slopeRating: tee?.slope_rating ?? null,
       holeCount: course?.hole_count ?? 18,
+      nineSiEven: course?.nine_si_even ?? false,
       handicapAtTime: roundData.handicap_at_time,
       scoreDifferential: roundData.score_differential,
       holes,

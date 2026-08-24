@@ -11,22 +11,25 @@ export interface OverviewHole {
 interface RoundOverviewScorecardProps {
   holes: OverviewHole[];
   courseHandicap: number | null;
+  nineSiEven?: boolean;
 }
 
 function HoleRange({
   holes,
   courseHandicap,
   holeCount,
+  nineSiEven,
   label,
 }: {
   holes: OverviewHole[];
   courseHandicap: number | null;
   holeCount: 9 | 18;
+  nineSiEven: boolean;
   label: string;
 }) {
   const totalLength = holes.reduce((sum, h) => sum + (h.length_meters ?? 0), 0);
   const totalPar = holes.reduce((sum, h) => sum + h.par, 0);
-  const totalNetPar = calculateTotalNetPar(holes, courseHandicap, holeCount);
+  const totalNetPar = calculateTotalNetPar(holes, courseHandicap, holeCount, nineSiEven);
 
   return (
     <View
@@ -91,7 +94,7 @@ function HoleRange({
           Net Par
         </Text>
         {holes.map((h) => {
-          const np = calculateNetPar(h, courseHandicap, holeCount);
+          const np = calculateNetPar(h, courseHandicap, holeCount, nineSiEven);
           return (
             <Text
               key={h.hole_number}
@@ -110,7 +113,7 @@ function HoleRange({
   );
 }
 
-export function RoundOverviewScorecard({ holes, courseHandicap }: RoundOverviewScorecardProps) {
+export function RoundOverviewScorecard({ holes, courseHandicap, nineSiEven = false }: RoundOverviewScorecardProps) {
   const front9 = holes.filter((h) => h.hole_number <= 9);
   const back9 = holes.filter((h) => h.hole_number > 9);
   const holeCount: 9 | 18 = holes.length === 9 ? 9 : 18;
@@ -118,10 +121,22 @@ export function RoundOverviewScorecard({ holes, courseHandicap }: RoundOverviewS
   return (
     <View testID="round-overview-scorecard">
       {front9.length > 0 && (
-        <HoleRange holes={front9} courseHandicap={courseHandicap} holeCount={holeCount} label="Out" />
+        <HoleRange
+          holes={front9}
+          courseHandicap={courseHandicap}
+          holeCount={holeCount}
+          nineSiEven={nineSiEven}
+          label="Out"
+        />
       )}
       {back9.length > 0 && (
-        <HoleRange holes={back9} courseHandicap={courseHandicap} holeCount={holeCount} label="In" />
+        <HoleRange
+          holes={back9}
+          courseHandicap={courseHandicap}
+          holeCount={holeCount}
+          nineSiEven={nineSiEven}
+          label="In"
+        />
       )}
     </View>
   );

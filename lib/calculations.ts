@@ -99,60 +99,74 @@ export function calculateCourseHandicap(
  * further stroke on holes with stroke_index 1-4 (22 % 18 = 4).
  *
  * 9-hole: CHC is computed against the full, played-twice 18-hole par (see
- * calculateCourseHandicap), so distributing it across only 9 stroke indices
- * the same way would double-count - half of CHC (rounded) is the fair
- * allowance for playing these 9 holes once, distributed across stroke
- * indices 1-9 the same way (floor/remainder, but mod 9 instead of mod 18).
+ * calculateCourseHandicap), and strokes are allocated as if the whole
+ * 18-hole card were played - the played nine receives whatever falls on ITS
+ * printed 18-hole stroke indexes. A nine whose holes carry the odd SIs
+ * (1,3,...,17 - the common case) maps 9-hole index r to 18-hole index 2r-1
+ * and gets the larger half of an odd CHC; a nine carrying the even SIs
+ * (nineSiEven, e.g. Korpa Landið/Sjórinn) maps to 2r and gets the smaller
+ * half. Confirmed against official GSÍ points for a real even-SI round
+ * (Korpa Landið, CHC 25: 12 strokes -> 20 points) and GSÍ exports on odd-SI
+ * nines (Mýrin, Húsafell).
  */
-export function strokesForHole(courseHandicap: number, strokeIndex: number, holeCount: 9 | 18 = 18): number {
-  if (holeCount === 9) {
-    const nineHoleAllowance = Math.round(courseHandicap / 2);
-    const fullRounds = Math.floor(nineHoleAllowance / 9);
-    const remainder = nineHoleAllowance % 9;
-    return fullRounds + (strokeIndex <= remainder ? 1 : 0);
-  }
+export function strokesForHole(
+  courseHandicap: number,
+  strokeIndex: number,
+  holeCount: 9 | 18 = 18,
+  nineSiEven = false
+): number {
+  const effectiveIndex = holeCount === 9 ? strokeIndex * 2 - (nineSiEven ? 0 : 1) : strokeIndex;
   const fullRounds = Math.floor(courseHandicap / 18);
   const remainder = courseHandicap % 18;
-  return fullRounds + (strokeIndex <= remainder ? 1 : 0);
+  return fullRounds + (effectiveIndex <= remainder ? 1 : 0);
 }
 
 /** Net par for one hole = par + strokes received on it. */
 export function calculateNetPar(
   hole: { par: number; stroke_index: number | null },
   courseHandicap: number | null,
-  holeCount: 9 | 18 = 18
+  holeCount: 9 | 18 = 18,
+  nineSiEven = false
 ): number {
   if (courseHandicap === null || hole.stroke_index === null) return hole.par;
-  return hole.par + strokesForHole(courseHandicap, hole.stroke_index, holeCount);
+  return hole.par + strokesForHole(courseHandicap, hole.stroke_index, holeCount, nineSiEven);
 }
 
 /** Total net par across a set of holes (the planning target for the round). */
 export function calculateTotalNetPar(
   holes: { par: number; stroke_index: number | null }[],
   courseHandicap: number | null,
-  holeCount: 9 | 18 = 18
+  holeCount: 9 | 18 = 18,
+  nineSiEven = false
 ): number {
-  return holes.reduce((sum, h) => sum + calculateNetPar(h, courseHandicap, holeCount), 0);
+  return holes.reduce((sum, h) => sum + calculateNetPar(h, courseHandicap, holeCount, nineSiEven), 0);
 }
 
 /**
  * Expected score for the unplayed nine, used in calculateRoundDifferential's
  * 9-hole path to build an 18-hole-equivalent combined score.
  *
- * Par for the nine, plus half the Course Handicap (rounded down) plus one.
- * Uses Course Handicap, not the raw Handicap Index - two rounds with the
- * same Handicap Index but different courses need different values here
- * (confirmed with real data: HCP 26.7 on a Course Handicap of 27 needs +14,
- * but the same 26.7 on a different course with Course Handicap 22 needs
- * +12 - only Course Handicap explains both). The floor-then-plus-one (not
- * round-then-plus-one) matters for odd Course Handicaps: round(27/2) = 14
- * overshoots, but floor(27/2) + 1 = 14 is correct. Verified exact against a
- * real GSÍ (Icelandic golf federation) scoring export across two different
- * courses (Course Handicaps 22, 26, and 27).
+ * Par for the nine, plus the unplayed nine's share of the Course Handicap
+ * (whatever the played nine did not receive - see strokesForHole for the
+ * odd/even stroke-index split) plus one. Uses Course Handicap, not the raw
+ * Handicap Index - two rounds with the same Handicap Index but different
+ * courses need different values here (confirmed with real GSÍ data: the
+ * same 26.7 index needs +14 on one course but +12 on another - only Course
+ * Handicap explains both). The odd-CH split was pinned down by a
+ * GSÍ-verified Korpa Landið round (even-SI nine, CH 25): the official
+ * differential requires +14 here (25 - 12 + 1), while the official 20
+ * points require only 12 strokes on the played nine.
  */
-export function calculateNetParForNine(totalPar: number, courseHandicap: number | null): number {
+export function calculateNetParForNine(
+  totalPar: number,
+  courseHandicap: number | null,
+  nineSiEven = false
+): number {
   if (courseHandicap === null) return totalPar;
-  return totalPar + Math.floor(courseHandicap / 2) + 1;
+  const playedStrokes = Array.from({ length: 9 }, (_, i) =>
+    strokesForHole(courseHandicap, i + 1, 9, nineSiEven)
+  ).reduce((sum, n) => sum + n, 0);
+  return totalPar + (courseHandicap - playedStrokes) + 1;
 }
 
 /**
@@ -163,11 +177,12 @@ export function calculateNetParForNine(totalPar: number, courseHandicap: number 
 export function calculateBruttoScore(
   holes: { par: number; stroke_index: number | null; score: number | null }[],
   courseHandicap: number | null,
-  holeCount: 9 | 18 = 18
+  holeCount: 9 | 18 = 18,
+  nineSiEven = false
 ): number {
   return holes.reduce((sum, h) => {
     if (h.score === null) return sum;
-    const maxScore = calculateNetPar(h, courseHandicap, holeCount) + 2;
+    const maxScore = calculateNetPar(h, courseHandicap, holeCount, nineSiEven) + 2;
     return sum + Math.min(h.score, maxScore);
   }, 0);
 }
@@ -211,11 +226,15 @@ export function toSuperscript(n: number): string {
 export function calculateNetParDiff(
   holes: { par: number; stroke_index: number | null; score: number | null }[],
   courseHandicap: number | null,
-  holeCount: 9 | 18 = 18
+  holeCount: 9 | 18 = 18,
+  nineSiEven = false
 ): number | null {
   const played = holes.filter((h): h is typeof h & { score: number } => h.score !== null);
   if (played.length === 0) return null;
-  return played.reduce((sum, h) => sum + (h.score - calculateNetPar(h, courseHandicap, holeCount)), 0);
+  return played.reduce(
+    (sum, h) => sum + (h.score - calculateNetPar(h, courseHandicap, holeCount, nineSiEven)),
+    0
+  );
 }
 
 /** Formats a relative-to-par value as "+3", "-2", or "E" for even par. */

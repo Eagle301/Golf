@@ -21,8 +21,10 @@ beforeEach(() => {
 });
 
 describe('useRoutines', () => {
-  it('loads routines from supabase', async () => {
-    const mockRoutines = [{ id: '1', name: 'Putting Ladder', description: null, category: 'putts' }];
+  it('loads routines from supabase with their drill counts', async () => {
+    const mockRoutines = [
+      { id: '1', name: 'Putting Ladder', description: null, category: 'putts', training_drills: [{ count: 3 }] },
+    ];
     (supabase.from as jest.Mock).mockReturnValue(createQueryBuilderMock({ data: mockRoutines, error: null }));
 
     const { result } = renderHook(() => useRoutines());
@@ -30,12 +32,14 @@ describe('useRoutines', () => {
     expect(result.current.loading).toBe(true);
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    expect(result.current.routines).toEqual(mockRoutines);
+    expect(result.current.routines).toEqual([
+      { id: '1', name: 'Putting Ladder', description: null, category: 'putts', drillCount: 3 },
+    ]);
     expect(seedStarterRoutines).not.toHaveBeenCalled();
   });
 
   it('seeds the starter routines when the user has none yet', async () => {
-    const seeded = [{ id: '1', name: '3-6-9 Ladder', description: null, category: 'putts' }];
+    const seeded = [{ id: '1', name: '3-6-9 Ladder', description: null, category: 'putts', training_drills: [] }];
     (supabase.from as jest.Mock)
       .mockReturnValueOnce(createQueryBuilderMock({ data: [], error: null }))
       .mockReturnValueOnce(createQueryBuilderMock({ data: seeded, error: null }));
@@ -47,7 +51,9 @@ describe('useRoutines', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(seedStarterRoutines).toHaveBeenCalledWith('user-1');
-    expect(result.current.routines).toEqual(seeded);
+    expect(result.current.routines).toEqual([
+      { id: '1', name: '3-6-9 Ladder', description: null, category: 'putts', drillCount: 0 },
+    ]);
   });
 
   it('surfaces an error message on failure', async () => {
@@ -79,7 +85,7 @@ describe('useRoutine', () => {
       error: null,
     });
     const drillsBuilder = createQueryBuilderMock({
-      data: [{ id: 'd1', name: '3ft putts', target_value: 10, photo_url: null }],
+      data: [{ id: 'd1', name: '3ft putts', target_value: 10, photo_url: null, video_url: null, result_type: 'target' }],
       error: null,
     });
     (supabase.from as jest.Mock).mockImplementation((table: string) =>
@@ -91,12 +97,22 @@ describe('useRoutine', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(result.current.routine).toEqual({ id: 'abc', name: 'Ladder', description: 'desc', category: 'putts' });
-    expect(result.current.drills).toEqual([{ id: 'd1', name: '3ft putts', target_value: 10, photo_url: null }]);
+    expect(result.current.drills).toEqual([
+      { id: 'd1', name: '3ft putts', target_value: 10, photo_url: null, video_url: null, result_type: 'target' },
+    ]);
   });
 });
 
 describe('saveRoutine', () => {
-  const validDrills: DrillInput[] = [{ name: '3ft putts', target_value: 10, photo_url: null }];
+  const validDrills: DrillInput[] = [
+    {
+      name: '3ft putts',
+      target_value: 10,
+      photo_url: null,
+      video_url: 'https://youtu.be/dQw4w9WgXcQ?t=95',
+      result_type: 'target',
+    },
+  ];
 
   it('throws RoutineValidationError when name is empty', async () => {
     await expect(
@@ -116,7 +132,18 @@ describe('saveRoutine', () => {
         name: 'Test',
         description: null,
         category: 'putts',
-        drills: [{ name: '', target_value: null, photo_url: null }],
+        drills: [{ name: '', target_value: null, photo_url: null, video_url: null, result_type: 'count' }],
+      })
+    ).rejects.toThrow(RoutineValidationError);
+  });
+
+  it('throws RoutineValidationError when an out-of-target drill has no target', async () => {
+    await expect(
+      saveRoutine({
+        name: 'Test',
+        description: null,
+        category: 'putts',
+        drills: [{ name: '3ft putts', target_value: null, photo_url: null, video_url: null, result_type: 'target' }],
       })
     ).rejects.toThrow(RoutineValidationError);
   });
@@ -141,7 +168,15 @@ describe('saveRoutine', () => {
       expect.objectContaining({ user_id: 'user-1', name: 'New Routine', description: 'A test routine', category: 'putts' })
     );
     expect(insertDrillsBuilder.insert).toHaveBeenCalledWith([
-      { routine_id: 'new-routine-id', name: '3ft putts', target_value: 10, photo_url: null, sort_order: 0 },
+      {
+        routine_id: 'new-routine-id',
+        name: '3ft putts',
+        target_value: 10,
+        photo_url: null,
+        video_url: 'https://youtu.be/dQw4w9WgXcQ?t=95',
+        result_type: 'target',
+        sort_order: 0,
+      },
     ]);
   });
 
@@ -162,8 +197,8 @@ describe('saveRoutine', () => {
     });
 
     const drills: DrillInput[] = [
-      { id: 'kept-1', name: '3ft putts', target_value: 10, photo_url: null },
-      { name: '6ft putts', target_value: 8, photo_url: null },
+      { id: 'kept-1', name: '3ft putts', target_value: 10, photo_url: null, video_url: null, result_type: 'target' },
+      { name: '6ft putts', target_value: null, photo_url: null, video_url: null, result_type: 'check' },
     ];
 
     const id = await saveRoutine({ id: 'existing-id', name: 'Updated', description: null, category: 'putts', drills });
@@ -174,10 +209,27 @@ describe('saveRoutine', () => {
     );
     expect(deleteBuilder.not).toHaveBeenCalledWith('id', 'in', '(kept-1)');
     expect(upsertBuilder.upsert).toHaveBeenCalledWith([
-      { id: 'kept-1', routine_id: 'existing-id', name: '3ft putts', target_value: 10, photo_url: null, sort_order: 0 },
+      {
+        id: 'kept-1',
+        routine_id: 'existing-id',
+        name: '3ft putts',
+        target_value: 10,
+        photo_url: null,
+        video_url: null,
+        result_type: 'target',
+        sort_order: 0,
+      },
     ]);
     expect(insertBuilder.insert).toHaveBeenCalledWith([
-      { routine_id: 'existing-id', name: '6ft putts', target_value: 8, photo_url: null, sort_order: 1 },
+      {
+        routine_id: 'existing-id',
+        name: '6ft putts',
+        target_value: null,
+        photo_url: null,
+        video_url: null,
+        result_type: 'check',
+        sort_order: 1,
+      },
     ]);
   });
 

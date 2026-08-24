@@ -40,3 +40,7 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# course importer artifacts
+scripts/.cache/
+scripts/out/

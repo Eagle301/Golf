@@ -21,7 +21,7 @@ describe('useRoundDetail', () => {
         handicap_at_time: 12.4,
         score_differential: 10.2,
         tee_boxes: { name: 'Gulur', course_rating: 70.9, slope_rating: 127 },
-        courses: { name: 'Pebble', total_par: 72, hole_count: 18 },
+        courses: { name: 'Pebble', total_par: 72, hole_count: 18, nine_si_even: true },
       },
       error: null,
     });
@@ -53,6 +53,7 @@ describe('useRoundDetail', () => {
       slopeRating: 127,
       totalPar: 72,
       holeCount: 18,
+      nineSiEven: true,
     });
   });
 

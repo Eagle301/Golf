@@ -69,13 +69,31 @@ function ActiveRoundScorecard() {
     router.back();
   }
 
-  const netParDiff = calculateNetParDiff(activeRound.holeLogs, courseHandicap, activeRound.hole_count);
+  // Rounds started before the course cache carried coordinates - and courses
+  // that simply have none - get no map button rather than a map of nowhere.
+  const { course_id: courseId, course_name: courseName, latitude, longitude } = activeRound;
+  const mappable = latitude != null && longitude != null;
+
+  function openMap() {
+    router.push({
+      pathname: '/course/aerial',
+      // The id carries the hole lines drawn for this course onto the map.
+      params: { id: courseId, name: courseName, lat: String(latitude), lng: String(longitude) },
+    });
+  }
+
+  const netParDiff = calculateNetParDiff(
+    activeRound.holeLogs,
+    courseHandicap,
+    activeRound.hole_count,
+    activeRound.nine_si_even ?? false
+  );
 
   return (
     <ScrollView className="flex-1 bg-background p-4 dark:bg-background-dark" testID="scorecard-screen">
       <View className="mb-3 flex-row items-center justify-between">
         <Text className="text-xl font-semibold text-text-primary dark:text-text-primary-dark">
-          {activeRound.course_name}
+          {courseName}
         </Text>
         <Text
           testID="scorecard-net-par-diff"
@@ -84,7 +102,20 @@ function ActiveRoundScorecard() {
           {formatRelativeToPar(netParDiff)}
         </Text>
       </View>
-      <Scorecard holes={activeRound.holeLogs} courseHandicap={courseHandicap} onSelectHole={handleSelectHole} />
+      <Scorecard
+        holes={activeRound.holeLogs}
+        courseHandicap={courseHandicap}
+        nineSiEven={activeRound.nine_si_even ?? false}
+        onSelectHole={handleSelectHole}
+      />
+      {mappable && (
+        <Button
+          testID="scorecard-map-button"
+          label="View course map"
+          onPress={openMap}
+          containerClassName="mb-8 mt-4"
+        />
+      )}
     </ScrollView>
   );
 }
@@ -131,7 +162,12 @@ function HistoricalRoundScorecard({ roundId }: { roundId: string }) {
         )
       : null;
 
-  const netParDiff = calculateNetParDiff(roundDetail.holes, courseHandicap, roundDetail.holeCount);
+  const netParDiff = calculateNetParDiff(
+    roundDetail.holes,
+    courseHandicap,
+    roundDetail.holeCount,
+    roundDetail.nineSiEven
+  );
 
   return (
     <>
@@ -151,6 +187,7 @@ function HistoricalRoundScorecard({ roundId }: { roundId: string }) {
         <Scorecard
           holes={roundDetail.holes}
           courseHandicap={courseHandicap}
+          nineSiEven={roundDetail.nineSiEven}
           roundSummary={{
             courseHandicap,
             handicapIndex: roundDetail.handicapAtTime,

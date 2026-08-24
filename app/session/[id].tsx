@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { View, Text, ScrollView, ActivityIndicator } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { DrillVideo } from '@/components/training/DrillVideo';
 import { ExpandablePhoto } from '@/components/ui/ExpandablePhoto';
 import { HeaderBackButton } from '@/components/ui/HeaderBackButton';
 import { useTrainingSession, deleteTrainingSession } from '@/lib/hooks/useTrainingSession';
@@ -61,19 +63,37 @@ export default function SessionDetailScreen() {
                   />
                 </View>
               )}
+              {drill.video_url && (
+                <View className="mr-3">
+                  <DrillVideo
+                    url={drill.video_url}
+                    testID={`session-detail-drill-${drill.drill_id}-video`}
+                    className="h-12 w-20 rounded-lg"
+                  />
+                </View>
+              )}
               <View className="flex-1">
                 <Text className="text-sm font-medium text-text-primary dark:text-text-primary-dark">
                   {drill.name}
                 </Text>
-                {drill.target_value != null && (
-                  <Text className="text-xs text-text-secondary dark:text-text-secondary-dark">
-                    Target {drill.target_value}
-                  </Text>
-                )}
               </View>
-              <Text className="text-lg font-bold text-text-primary dark:text-text-primary-dark">
-                {drill.value ?? '-'}
-              </Text>
+              {drill.result_type === 'check' ? (
+                drill.value != null && drill.value >= 1 ? (
+                  <View testID={`session-detail-drill-${drill.drill_id}-checked`}>
+                    <Ionicons name="checkmark-circle" size={24} color="#16A34A" />
+                  </View>
+                ) : (
+                  <Text className="text-lg font-bold text-text-secondary dark:text-text-secondary-dark">-</Text>
+                )
+              ) : drill.result_type === 'target' && drill.target_value != null ? (
+                <Text className="text-lg font-bold text-text-primary dark:text-text-primary-dark">
+                  {`${drill.value ?? '-'} / ${drill.target_value}`}
+                </Text>
+              ) : (
+                <Text className="text-lg font-bold text-text-primary dark:text-text-primary-dark">
+                  {drill.value ?? '-'}
+                </Text>
+              )}
             </View>
           ))}
 

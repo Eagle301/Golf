@@ -21,11 +21,27 @@ describe('useTrainingSession', () => {
       data: [
         {
           value: 6,
-          training_drills: { id: 'd2', name: '6ft putts', target_value: 8, photo_url: null, sort_order: 1 },
+          training_drills: {
+            id: 'd2',
+            name: '6ft putts',
+            target_value: 8,
+            photo_url: null,
+            video_url: null,
+            result_type: 'target',
+            sort_order: 1,
+          },
         },
         {
           value: 8,
-          training_drills: { id: 'd1', name: '3ft putts', target_value: 10, photo_url: null, sort_order: 0 },
+          training_drills: {
+            id: 'd1',
+            name: '3ft putts',
+            target_value: 10,
+            photo_url: null,
+            video_url: 'https://youtu.be/dQw4w9WgXcQ?t=95',
+            result_type: 'target',
+            sort_order: 0,
+          },
         },
       ],
       error: null,
@@ -43,8 +59,26 @@ describe('useTrainingSession', () => {
       datePlayed: '2026-01-01',
       note: 'Felt good',
       drills: [
-        { drill_id: 'd1', name: '3ft putts', target_value: 10, photo_url: null, value: 8, sort_order: 0 },
-        { drill_id: 'd2', name: '6ft putts', target_value: 8, photo_url: null, value: 6, sort_order: 1 },
+        {
+          drill_id: 'd1',
+          name: '3ft putts',
+          target_value: 10,
+          photo_url: null,
+          video_url: 'https://youtu.be/dQw4w9WgXcQ?t=95',
+          result_type: 'target',
+          value: 8,
+          sort_order: 0,
+        },
+        {
+          drill_id: 'd2',
+          name: '6ft putts',
+          target_value: 8,
+          photo_url: null,
+          video_url: null,
+          result_type: 'target',
+          value: 6,
+          sort_order: 1,
+        },
       ],
     });
   });

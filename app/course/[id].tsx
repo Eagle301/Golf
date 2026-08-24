@@ -166,6 +166,32 @@ export default function CourseFormScreen() {
     }
   }
 
+  // Reads the fields rather than the saved course, so a coordinate can be
+  // checked on the map before it's committed.
+  const mappable = latitude.trim() !== '' && longitude.trim() !== '';
+
+  function openMap() {
+    router.push({
+      pathname: '/course/aerial',
+      params: { name, club: club.trim(), lat: latitude.trim(), lng: longitude.trim() },
+    });
+  }
+
+  // Only for a saved course: the editor draws lines against hole rows, which
+  // don't exist until the course has been written.
+  function openHoleLines() {
+    router.push({
+      pathname: '/course/holes',
+      params: {
+        id: course.id!,
+        name,
+        club: club.trim(),
+        lat: latitude.trim(),
+        lng: longitude.trim(),
+      },
+    });
+  }
+
   function handleDelete() {
     setDeleteModalOpen(true);
   }
@@ -245,6 +271,26 @@ export default function CourseFormScreen() {
             />
           </View>
         </View>
+
+        {mappable && (
+          <Button
+            testID="course-map-button"
+            variant="secondary"
+            label="View aerial map"
+            onPress={openMap}
+            containerClassName="mb-4"
+          />
+        )}
+
+        {mappable && course.id && (
+          <Button
+            testID="course-holes-button"
+            variant="secondary"
+            label="Edit hole lines"
+            onPress={openHoleLines}
+            containerClassName="mb-4"
+          />
+        )}
 
         <Text className="mb-1 text-sm font-medium text-text-primary dark:text-text-primary-dark">Holes</Text>
         <View className="mb-4 flex-row gap-3">

@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { seedStarterRoutines } from '@/lib/training/seedRoutines';
-import type { TrainingCategory } from '@/types/database';
+import type { DrillResultType, TrainingCategory } from '@/types/database';
 
 export interface DrillInput {
   id?: string;
   name: string;
   target_value: number | null;
   photo_url: string | null;
+  /** Canonical YouTube watch URL, optionally carrying a t= start time. */
+  video_url: string | null;
+  result_type: DrillResultType;
 }
 
 export interface RoutineListItem {
@@ -15,6 +18,7 @@ export interface RoutineListItem {
   name: string;
   description: string | null;
   category: TrainingCategory;
+  drillCount: number;
 }
 
 export class RoutineValidationError extends Error {}
@@ -29,11 +33,14 @@ export interface UseRoutinesResult {
 async function fetchRoutinesForCurrentUser(): Promise<RoutineListItem[]> {
   const { data, error } = await supabase
     .from('training_routines')
-    .select('id, name, description, category')
+    .select('id, name, description, category, training_drills(count)')
     .order('created_at', { ascending: true });
 
   if (error) throw new Error(error.message);
-  return (data as RoutineListItem[]) ?? [];
+  return ((data as any[]) ?? []).map(({ training_drills, ...routine }) => ({
+    ...routine,
+    drillCount: training_drills?.[0]?.count ?? 0,
+  })) as RoutineListItem[];
 }
 
 // Shared across every useRoutines() instance (e.g. the hook's own mount
@@ -127,7 +134,7 @@ export function useRoutine(id: string): UseRoutineResult {
       supabase.from('training_routines').select('id, name, description, category').eq('id', id).single(),
       supabase
         .from('training_drills')
-        .select('id, name, target_value, photo_url')
+        .select('id, name, target_value, photo_url, video_url, result_type')
         .eq('routine_id', id)
         .order('sort_order'),
     ]);
@@ -173,6 +180,9 @@ function validateSaveRoutineInput(input: SaveRoutineInput): void {
   for (const drill of input.drills) {
     if (!drill.name.trim()) {
       throw new RoutineValidationError('Every drill needs a name.');
+    }
+    if (drill.result_type === 'target' && drill.target_value == null) {
+      throw new RoutineValidationError('Every "out of" drill needs a target.');
     }
   }
 }
@@ -235,6 +245,8 @@ export async function saveRoutine(input: SaveRoutineInput): Promise<string> {
         name: d.name,
         target_value: d.target_value,
         photo_url: d.photo_url,
+        video_url: d.video_url,
+        result_type: d.result_type,
         sort_order: d.sort_order,
       }))
     );
@@ -248,6 +260,8 @@ export async function saveRoutine(input: SaveRoutineInput): Promise<string> {
         name: d.name,
         target_value: d.target_value,
         photo_url: d.photo_url,
+        video_url: d.video_url,
+        result_type: d.result_type,
         sort_order: d.sort_order,
       }))
     );

@@ -1,0 +1,20 @@
+[
+{"id":"67e0af51-cff8-4bc8-a5f6-7b1eb4b84fbc","name":"Jaðarsvöllur","club":"GA","hole_count":18,"latitude":65.66686,"longitude":-18.11671},
+{"id":"4a735a16-dc08-4f91-8707-b0460a4b2eb7","name":"Húsafell","club":"GHF","hole_count":9,"latitude":64.69792,"longitude":-20.87833},
+{"id":"15bea26b-0ca3-4022-8bc6-393a00b6dd5d","name":"Leirdalsvöllur","club":"GKG","hole_count":18,"latitude":64.08668,"longitude":-21.87808},
+{"id":"ae7d45d2-8039-4b99-a4fc-f321d48c3d7a","name":"Mýrin","club":"GKG","hole_count":9,"latitude":64.08621,"longitude":-21.88151},
+{"id":"0481be57-4861-4f04-b261-097a5bd731c3","name":"Hlíðavöllur","club":"GM","hole_count":18,"latitude":64.16816,"longitude":-21.7407},
+{"id":"21789df2-8a90-43be-882e-50ff23b49d05","name":"Grafarholtsvöllur","club":"GR","hole_count":18,"latitude":64.12057,"longitude":-21.76782},
+{"id":"868e6a73-f7ba-4ce1-b982-b42afb563947","name":"Korpa Áin","club":"GR","hole_count":9,"latitude":64.14977,"longitude":-21.76237},
+{"id":"60431efb-f0f4-4d98-921b-8162f0e673a3","name":"Korpa Áin/Landið","club":"GR","hole_count":18,"latitude":64.14977,"longitude":-21.76237},
+{"id":"7899ec76-32cb-4bbf-b2d1-75f0d1f181bf","name":"Korpa Landið","club":"GR","hole_count":9,"latitude":64.14977,"longitude":-21.76237},
+{"id":"5e782906-dd1e-4b60-be34-987b61beabcf","name":"Korpa Landið/Áin","club":"GR","hole_count":18,"latitude":64.14977,"longitude":-21.76237},
+{"id":"8d495972-bfe8-450b-9196-5e7542c0131a","name":"Korpa Sjórinn","club":"GR","hole_count":9,"latitude":64.14977,"longitude":-21.76237},
+{"id":"d7816c1f-21ca-444e-87de-2065cf497d94","name":"Korpa Sjórinn/Áin","club":"GR","hole_count":18,"latitude":64.14977,"longitude":-21.76237},
+{"id":"72af902a-7342-40f4-98d4-b42e5327bc4b","name":"Korpa Sjórinn/Landið","club":"GR","hole_count":18,"latitude":64.14977,"longitude":-21.76237},
+{"id":"25d22388-16b6-4504-b4b4-96c3dcb6ad62","name":"Hvaleyrarvöllur","club":"Keilir","hole_count":18,"latitude":64.05788,"longitude":-21.99497},
+{"id":"9f7f2b19-c7ca-4b32-9782-312a41f2d189","name":"Garðavöllur","club":"Leynir","hole_count":18,"latitude":64.31939,"longitude":-22.02943},
+{"id":"efe8fb84-9347-49af-92bf-db307deb334b","name":"Nesvöllur","club":"NK","hole_count":9,"latitude":64.15227,"longitude":-22.03015},
+{"id":"4641a4fe-2726-4043-8817-07fad160b1af","name":"Ljúflingur","club":"Oddur","hole_count":9,"latitude":64.0615,"longitude":-21.89554},
+{"id":"5121636d-b1ff-424d-83c5-00ecaaec2d1d","name":"Urriðavöllur","club":"Oddur","hole_count":18,"latitude":64.0615,"longitude":-21.89554}
+]

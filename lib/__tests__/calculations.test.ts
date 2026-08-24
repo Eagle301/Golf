@@ -123,19 +123,47 @@ describe('strokesForHole', () => {
     expect(totalExtraStrokes).toBe(22);
   });
 
-  it('for a 9-hole round, distributes half the Course Handicap (rounded) across stroke indices 1-9', () => {
-    // CHC 23 -> half = round(11.5) = 12; distributed over 9 stroke indices: 12 = 9 + 3.
-    // Every hole gets 1 stroke (floor(12/9)), plus holes with stroke_index 1-3 get a 2nd (12 % 9 = 3).
-    expect(strokesForHole(23, 1, 9)).toBe(2);
-    expect(strokesForHole(23, 3, 9)).toBe(2);
-    expect(strokesForHole(23, 4, 9)).toBe(1);
-    expect(strokesForHole(23, 9, 9)).toBe(1);
+  // A nine is allocated strokes as if the full 18-hole card were played: the
+  // played nine receives whatever falls on ITS stroke indexes. A nine whose
+  // holes carry the odd 18-hole SIs (the common case: Mýrin, Húsafell, Áin)
+  // gets the larger half of an odd Course Handicap; a nine carrying the even
+  // SIs (Korpa Landið, Sjórinn) gets the smaller half.
+  it('gives an odd-SI nine (default) the rounded-up half of an odd Course Handicap', () => {
+    // CHC 25 over 18 holes: 18x1 + a 2nd stroke on 18-SI 1-7. The odd SIs
+    // 1,3,5,7 map to 9-hole indexes 1-4 -> 9 + 4 = 13 strokes.
+    expect(strokesForHole(25, 1, 9)).toBe(2);
+    expect(strokesForHole(25, 4, 9)).toBe(2);
+    expect(strokesForHole(25, 5, 9)).toBe(1);
 
-    const totalStrokes = Array.from({ length: 9 }, (_, i) => strokesForHole(23, i + 1, 9)).reduce(
+    const totalStrokes = Array.from({ length: 9 }, (_, i) => strokesForHole(25, i + 1, 9)).reduce(
+      (sum, n) => sum + n,
+      0
+    );
+    expect(totalStrokes).toBe(13);
+  });
+
+  it('gives an even-SI nine the floored half of an odd Course Handicap', () => {
+    // Verified against the official GSÍ points (20) for a real Korpa Landið
+    // round: CHC 25, even SIs 2,4,6 get the 2nd stroke -> 9 + 3 = 12 strokes.
+    expect(strokesForHole(25, 1, 9, true)).toBe(2);
+    expect(strokesForHole(25, 3, 9, true)).toBe(2);
+    expect(strokesForHole(25, 4, 9, true)).toBe(1);
+
+    const totalStrokes = Array.from({ length: 9 }, (_, i) => strokesForHole(25, i + 1, 9, true)).reduce(
       (sum, n) => sum + n,
       0
     );
     expect(totalStrokes).toBe(12);
+  });
+
+  it('splits an even Course Handicap identically for both parities', () => {
+    for (const even of [false, true]) {
+      const totalStrokes = Array.from({ length: 9 }, (_, i) => strokesForHole(22, i + 1, 9, even)).reduce(
+        (sum, n) => sum + n,
+        0
+      );
+      expect(totalStrokes).toBe(11);
+    }
   });
 });
 
@@ -159,10 +187,10 @@ describe('calculateNetPar / calculateTotalNetPar', () => {
     expect(calculateTotalNetPar(holes, 13)).toBe(8);
   });
 
-  it('for a 9-hole round, totals only half the Course Handicap worth of strokes (not the full mod-18 allocation)', () => {
-    // Husafell: 9 holes, stroke indices 1-9, total par 36, CHC 23.
+  it('for a 9-hole round, totals only the played nine share of the Course Handicap (not the full mod-18 allocation)', () => {
+    // Husafell (odd-SI nine): 9 holes, stroke indices 1-9, total par 36, CHC 23.
     // Old (buggy) mod-18 behavior would have given 14 strokes -> net par 50.
-    // Correct: half of CHC (12) distributed across 9 holes -> net par 48.
+    // Correct: the odd SIs of a CHC-23 18-hole allocation give 12 strokes -> 48.
     const holes = [
       { par: 4, stroke_index: 9 },
       { par: 5, stroke_index: 8 },
@@ -179,21 +207,33 @@ describe('calculateNetPar / calculateTotalNetPar', () => {
 });
 
 describe('calculateNetParForNine', () => {
-  it('adds half the Course Handicap (rounded down) plus one to the par of the nine actually played', () => {
-    // Real GSÍ export, Mýrin: totalPar 34, Course Handicap 26 or 27 -> floor(CH/2)+1 = 14 either way -> 48
+  it('adds the unplayed-nine share of the Course Handicap plus one to the par of the nine', () => {
+    // The unplayed nine gets whatever the played nine did not (see
+    // strokesForHole), plus one.
+    // Real GSÍ exports (odd-SI nines): Mýrin totalPar 34, CH 26 or 27 -> 48;
+    // Húsafell totalPar 36, CH 22 -> 48.
     expect(calculateNetParForNine(34, 26)).toBe(48);
     expect(calculateNetParForNine(34, 27)).toBe(48);
-    // Real GSÍ export, Húsafell: totalPar 36, Course Handicap 22 -> floor(22/2)+1 = 12 -> 48
     expect(calculateNetParForNine(36, 22)).toBe(48);
   });
 
-  it('floors an odd Course Handicap half instead of rounding it up', () => {
-    expect(calculateNetParForNine(36, 23)).toBe(36 + 12); // floor(23/2) = 11, +1 = 12
-    expect(calculateNetParForNine(36, 22)).toBe(36 + 12); // floor(22/2) = 11, +1 = 12
+  it('gives the unplayed nine of an even-SI course the larger half of an odd Course Handicap', () => {
+    // Real GSÍ-verified round, Korpa Landið (even-SI) 2026-08-19: CH 25,
+    // played nine got 12, so the unplayed nine gets 13, +1 -> 36 + 14 = 50.
+    expect(calculateNetParForNine(36, 25, true)).toBe(50);
+    // Odd-SI course with the same CH: played 13, unplayed 12, +1 -> 49.
+    expect(calculateNetParForNine(36, 25)).toBe(49);
   });
 
   it('falls back to plain par with no course handicap', () => {
     expect(calculateNetParForNine(36, null)).toBe(36);
+  });
+
+  it('reproduces the official GSÍ score differential for the Korpa Landið reference round', () => {
+    // 2026-08-19, tee 57 (CR 68.8, slope 121), brutto 46, Course Handicap 25,
+    // even-SI nine. Official GSÍ: 20 points, score differential 25.4.
+    const differential = calculateRoundDifferential(46, 68.8, 121, 9, calculateNetParForNine(36, 25, true));
+    expect(differential).toBeCloseTo(25.4, 1);
   });
 });
 

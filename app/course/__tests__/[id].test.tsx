@@ -167,3 +167,119 @@ describe('CourseFormScreen', () => {
     expect(screen.queryByTestId('delete-course-button')).toBeNull();
   });
 });
+
+describe('CourseFormScreen aerial map button', () => {
+  const push = jest.fn();
+
+  const holes = Array.from({ length: 18 }, (_, i) => ({
+    hole_number: i + 1,
+    par: 4 as const,
+    stroke_index: i + 1,
+  }));
+  const tee = { name: 'Gulur', course_rating: 70.9, slope_rating: 127, lengths: Array(18).fill(350) };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (useRouter as jest.Mock).mockReturnValue({ push, back: jest.fn() });
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ id: 'course-1' });
+  });
+
+  function mockCourseAt(latitude: number | null, longitude: number | null) {
+    (useCoursesModule.useCourse as jest.Mock).mockReturnValue({
+      course: { id: 'course-1', name: 'Landið', club: 'GR', hole_count: 18, latitude, longitude },
+      holes,
+      tees: [tee],
+      loading: false,
+      error: null,
+    });
+  }
+
+  it('opens the aerial view for a course that has coordinates', () => {
+    mockCourseAt(64.14977, -21.76237);
+
+    render(<CourseFormScreen />);
+    fireEvent.press(screen.getByTestId('course-map-button'));
+
+    expect(push).toHaveBeenCalledWith({
+      pathname: '/course/aerial',
+      params: { name: 'Landið', club: 'GR', lat: '64.14977', lng: '-21.76237' },
+    });
+  });
+
+  it('maps the coordinates currently typed into the form, not the saved ones', () => {
+    mockCourseAt(64.14977, -21.76237);
+
+    render(<CourseFormScreen />);
+    fireEvent.changeText(screen.getByTestId('course-latitude-input'), '64.05788');
+    fireEvent.changeText(screen.getByTestId('course-longitude-input'), '-21.99497');
+    fireEvent.press(screen.getByTestId('course-map-button'));
+
+    expect(push).toHaveBeenCalledWith({
+      pathname: '/course/aerial',
+      params: { name: 'Landið', club: 'GR', lat: '64.05788', lng: '-21.99497' },
+    });
+  });
+
+  it('hides the map button until the course has coordinates', () => {
+    mockCourseAt(null, null);
+
+    render(<CourseFormScreen />);
+
+    expect(screen.queryByTestId('course-map-button')).toBeNull();
+  });
+});
+
+describe('CourseFormScreen hole lines button', () => {
+  const push = jest.fn();
+
+  const holes = Array.from({ length: 18 }, (_, i) => ({
+    hole_number: i + 1,
+    par: 4 as const,
+    stroke_index: i + 1,
+  }));
+  const tee = { name: 'Gulur', course_rating: 70.9, slope_rating: 127, lengths: Array(18).fill(350) };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (useRouter as jest.Mock).mockReturnValue({ push, back: jest.fn() });
+  });
+
+  function mockCourse(id: string | null, latitude: number | null, longitude: number | null) {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ id: id ?? 'new' });
+    (useCoursesModule.useCourse as jest.Mock).mockReturnValue({
+      course: { id, name: 'Landið', club: 'GR', hole_count: 18, latitude, longitude },
+      holes,
+      tees: [tee],
+      loading: false,
+      error: null,
+    });
+  }
+
+  it('opens the hole line editor for a saved course with coordinates', () => {
+    mockCourse('course-1', 64.14977, -21.76237);
+
+    render(<CourseFormScreen />);
+    fireEvent.press(screen.getByTestId('course-holes-button'));
+
+    expect(push).toHaveBeenCalledWith({
+      pathname: '/course/holes',
+      params: { id: 'course-1', name: 'Landið', club: 'GR', lat: '64.14977', lng: '-21.76237' },
+    });
+  });
+
+  it('hides the hole line editor until the course has been saved', () => {
+    mockCourse(null, 64.14977, -21.76237);
+
+    render(<CourseFormScreen />);
+
+    expect(screen.queryByTestId('course-holes-button')).toBeNull();
+  });
+
+  it('hides the hole line editor for a course with no coordinates', () => {
+    mockCourse('course-1', null, null);
+
+    render(<CourseFormScreen />);
+
+    expect(screen.queryByTestId('course-holes-button')).toBeNull();
+  });
+});

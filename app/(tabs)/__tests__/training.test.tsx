@@ -18,13 +18,26 @@ describe('TrainingScreen', () => {
   const refetchRoutines = jest.fn();
   const refetchSessions = jest.fn();
 
+  const todayISO = new Date().toISOString().slice(0, 10);
   const routines = [
-    { id: 'r1', name: '3-6-9 Ladder', description: 'Ladder desc', category: 'putts' },
-    { id: 'r2', name: 'Fairway Finder', description: 'Full swing desc', category: 'full_swing' },
+    { id: 'r1', name: '3-6-9 Ladder', description: 'Ladder desc', category: 'putts', drillCount: 3 },
+    { id: 'r2', name: 'Fairway Finder', description: 'Full swing desc', category: 'full_swing', drillCount: 1 },
   ];
   const sessions = [
-    { id: 's1', date_played: '2026-01-01', note: null, training_routines: { name: '3-6-9 Ladder', category: 'putts' } },
-    { id: 's2', date_played: '2026-01-02', note: null, training_routines: { name: 'Fairway Finder', category: 'full_swing' } },
+    {
+      id: 's1',
+      routine_id: 'r1',
+      date_played: todayISO,
+      note: null,
+      training_routines: { name: '3-6-9 Ladder', category: 'putts' },
+    },
+    {
+      id: 's2',
+      routine_id: 'r2',
+      date_played: '2026-01-02',
+      note: null,
+      training_routines: { name: 'Fairway Finder', category: 'full_swing' },
+    },
   ];
 
   beforeEach(() => {
@@ -76,6 +89,22 @@ describe('TrainingScreen', () => {
     expect(screen.getByText('Full Swing')).toBeTruthy();
     expect(screen.getByText('Strategy')).toBeTruthy();
     expect(screen.getByTestId('category-card-putts')).toBeTruthy();
+  });
+
+  it('shows when each category was last practiced', () => {
+    render(<TrainingScreen />);
+    // Putts had a session today; short game and strategy never had one.
+    expect(screen.getByText('Today')).toBeTruthy();
+    expect(screen.getAllByText('Not practiced yet')).toHaveLength(2);
+  });
+
+  it('shows each routine with its drill count and labeled action buttons', () => {
+    render(<TrainingScreen />);
+    fireEvent.press(screen.getByTestId('category-card-putts'));
+    expect(screen.getByText(/3 drills/)).toBeTruthy();
+    expect(screen.getByText('Stats')).toBeTruthy();
+    expect(screen.getByText('Edit')).toBeTruthy();
+    expect(screen.getByText('Start')).toBeTruthy();
   });
 
   it('expands a category card on tap to reveal its routines, and collapses on a second tap', () => {

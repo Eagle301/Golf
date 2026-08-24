@@ -23,6 +23,8 @@ export interface Course {
   total_par: number | null;
   latitude: number | null;
   longitude: number | null;
+  /** True when this nine carries the even 18-hole stroke indexes (see lib/calculations strokesForHole). */
+  nine_si_even: boolean;
   created_at: string;
 }
 
@@ -32,6 +34,13 @@ export interface Hole {
   hole_number: number;
   par: 3 | 4 | 5;
   stroke_index: number | null;
+}
+
+/** The hole's drawn line: tee first, green last, bends in between. */
+export interface HoleGeometry {
+  hole_id: string;
+  points: [number, number][];
+  updated_at: string;
 }
 
 export interface TeeBox {
@@ -88,12 +97,20 @@ export interface TrainingRoutine {
   created_at: string;
 }
 
+/**
+ * How a drill's result is logged: a simple done/not-done checkmark, a count
+ * against a target ("x out of y"), or a plain count with no target.
+ */
+export type DrillResultType = 'check' | 'target' | 'count';
+
 export interface TrainingDrill {
   id: string;
   routine_id: string;
   name: string;
   target_value: number | null;
   photo_url: string | null;
+  video_url: string | null;
+  result_type: DrillResultType;
   sort_order: number;
 }
 
@@ -130,6 +147,11 @@ export interface Database {
         Row: Hole;
         Insert: Partial<Hole> & { course_id: string; hole_number: number; par: 3 | 4 | 5 };
         Update: Partial<Hole>;
+      };
+      hole_geometry: {
+        Row: HoleGeometry;
+        Insert: { hole_id: string; points: [number, number][] };
+        Update: Partial<HoleGeometry>;
       };
       tee_boxes: {
         Row: TeeBox;
