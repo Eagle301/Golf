@@ -252,7 +252,12 @@ export default function LiveRoundScreen() {
             </Text>
           )}
 
-          <Scorecard holes={holeLogs} courseHandicap={courseHandicap} onSelectHole={goToHole} />
+          <Scorecard
+            holes={holeLogs}
+            courseHandicap={courseHandicap}
+            nineSiEven={activeRound.nine_si_even ?? false}
+            onSelectHole={goToHole}
+          />
 
           <Button
             testID="previous-hole-button"

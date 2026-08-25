@@ -63,6 +63,24 @@ function makeActiveRound(overrides: Partial<ActiveRound>): ActiveRound {
   };
 }
 
+/** A full, fully-scored nine of par 4s carrying 9-hole stroke indexes 1-9, every hole played to par. */
+function makeNineHoleLogs(): ActiveRound['holeLogs'] {
+  return Array.from({ length: 9 }, (_, i) => ({
+    hole_number: i + 1,
+    par: 4,
+    length_meters: 350,
+    stroke_index: i + 1,
+    hole_id: `h${i + 1}`,
+    score: 4,
+    putts: 2,
+    fairway_hit: 'yes' as const,
+    gir: true,
+    gir_overridden: false,
+    penalties: 0,
+    chip_shots: 0,
+  }));
+}
+
 describe('LiveRoundScreen review panel', () => {
   const updateActiveRound = jest.fn();
   const discardActiveRound = jest.fn();
@@ -156,6 +174,34 @@ describe('LiveRoundScreen review panel', () => {
   // CHC = HC*(slope/113) + (CR - totalPar*2) = 2*1 + (16-16) = 2, since hole_count is 9;
   // the played nine gets floor(2/2) = 1 stroke, landing on stroke_index 1.
   const CHC_ONE_OVERRIDES = { handicap_at_start: 2, course_rating: 16, slope_rating: 113, total_par: 8 };
+
+  // Korpa Sjórinn-style nine: the holes carry the EVEN stroke indexes of the club's 18-hole card.
+  // CHC = 1 * (113/113) + (72 - 36*2) = 1. Even-SI allocation maps 9-hole index r to 18-hole index
+  // 2r, so index 1 -> 2 > 1 and no hole gets a stroke: every net score equals the gross 4.
+  // The odd-SI default (2r - 1) would map index 1 -> 1 <= 1, hand hole 1 a stroke and net it at 3.
+  it('allocates handicap strokes by the even stroke indexes when the round is an even-SI nine', () => {
+    (useActiveRound as jest.Mock).mockReturnValue({
+      activeRound: makeActiveRound({
+        currentHoleIndex: 9, // review panel
+        nine_si_even: true,
+        handicap_at_start: 1,
+        course_rating: 72,
+        slope_rating: 113,
+        total_par: 36,
+        holeLogs: makeNineHoleLogs(),
+      }),
+      loading: false,
+      updateActiveRound,
+      discardActiveRound,
+      refetch,
+    });
+
+    render(<LiveRoundScreen />);
+
+    expect(screen.getByTestId('review-panel')).toBeTruthy();
+    expect(screen.getByTestId('scorecard-net-1').props.children).toBe(4);
+    expect(screen.getByTestId('scorecard-total-score').props.children.join('')).toBe('36 / 36');
+  });
 
   it('re-syncs from storage on focus, so a hole jump made from another screen (e.g. Scorecard) is picked up', () => {
     (useActiveRound as jest.Mock).mockReturnValue({
