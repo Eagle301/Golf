@@ -96,6 +96,15 @@ describe('LeaksCard', () => {
     expect(screen.queryByTestId('leak-detail-approach')).toBeNull();
   });
 
+  it('names the training category each leak leads to', () => {
+    render(<LeaksCard leaks={LEAKS} onPractice={jest.fn()} />);
+
+    expect(screen.getByTestId('leak-category-three_putts').props.children).toBe('Putts');
+    expect(screen.getByTestId('leak-category-chips').props.children).toBe('Short Game');
+    expect(screen.getByTestId('leak-category-tee_shots').props.children).toBe('Full Swing');
+    expect(screen.getByTestId('leak-category-penalties').props.children).toBe('Strategy');
+  });
+
   it('reports the pressed leak\'s training category', () => {
     const onPractice = jest.fn();
     render(<LeaksCard leaks={LEAKS} onPractice={onPractice} />);

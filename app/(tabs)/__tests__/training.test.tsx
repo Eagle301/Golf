@@ -6,7 +6,7 @@ jest.mock('expo-router', () => ({
   useFocusEffect: (effect: () => void) => effect(),
 }));
 
-import { render, fireEvent, screen } from '@testing-library/react-native';
+import { render, fireEvent, screen, within } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
 import { useRoutines } from '@/lib/hooks/useRoutines';
 import { useTrainingSessions } from '@/lib/hooks/useTrainingSessions';
@@ -84,11 +84,16 @@ describe('TrainingScreen', () => {
 
   it('shows the four fixed category cards with their routine counts', () => {
     render(<TrainingScreen />);
-    expect(screen.getByText('Putts')).toBeTruthy();
-    expect(screen.getByText('Short Game')).toBeTruthy();
-    expect(screen.getByText('Full Swing')).toBeTruthy();
-    expect(screen.getByText('Strategy')).toBeTruthy();
-    expect(screen.getByTestId('category-card-putts')).toBeTruthy();
+    // Scoped to the cards themselves: the leak rows name their category too,
+    // so a bare getByText would match in two places.
+    for (const [testID, label] of [
+      ['category-card-putts', 'Putts'],
+      ['category-card-short_game', 'Short Game'],
+      ['category-card-full_swing', 'Full Swing'],
+      ['category-card-strategy', 'Strategy'],
+    ]) {
+      expect(within(screen.getByTestId(testID)).getByText(label)).toBeTruthy();
+    }
   });
 
   it('shows when each category was last practiced', () => {

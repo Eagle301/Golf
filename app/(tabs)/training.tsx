@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { View, Text, Pressable, ActivityIndicator, ScrollView } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -39,6 +39,17 @@ export default function TrainingScreen() {
     useTrainingSessions();
   const { leaks, refetch: refetchLeaks } = useLeaks();
   const [expandedCategory, setExpandedCategory] = useState<TrainingCategory | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
+
+  /**
+   * The leaks card sits below the categories, so expanding one from down
+   * there would happen off-screen - scroll back up to the category the leak
+   * pointed at, otherwise the shortcut looks like it did nothing.
+   */
+  function practiceCategory(category: TrainingCategory) {
+    setExpandedCategory(category);
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
+  }
 
   const todayISO = new Date().toISOString().slice(0, 10);
   const lastByCategory = latestDateByKey(
@@ -130,21 +141,11 @@ export default function TrainingScreen() {
 
   return (
     <ScrollView
+      ref={scrollRef}
       className="flex-1 bg-background dark:bg-background-dark"
       contentContainerClassName="pb-8"
       showsVerticalScrollIndicator={false}
     >
-      <View className="flex-row items-center justify-between px-4 pt-4">
-        <Text className="text-xl font-semibold text-text-primary dark:text-text-primary-dark">Training</Text>
-        <Pressable
-          testID="add-routine-button"
-          onPress={() => router.push('/routine/new')}
-          className="h-9 w-9 items-center justify-center rounded-full bg-brand dark:bg-accent-gold-dark"
-        >
-          <Text className="text-lg text-white dark:text-gray-900">+</Text>
-        </Pressable>
-      </View>
-
       {routinesLoading ? (
         <ActivityIndicator testID="routines-loading" className="mt-4" />
       ) : routinesError ? (
@@ -251,9 +252,27 @@ export default function TrainingScreen() {
         </View>
       )}
 
+      {/* Sits directly under the categories rather than in a row of its own:
+          a routine belongs to a category, so the action reads as "add another
+          one to this set" and borrows the tiles' own card shape. */}
+      {!routinesLoading && !routinesError && (
+        <View className="mt-3 px-4">
+          <Pressable
+            testID="add-routine-button"
+            onPress={() => router.push('/routine/new')}
+            className="flex-row items-center justify-center rounded-2xl border border-gray-300 bg-surface py-3.5 dark:border-border-dark dark:bg-surface-dark"
+          >
+            <Ionicons name="add" size={18} color="#166534" />
+            <Text className="ml-1.5 text-base font-semibold text-text-primary dark:text-text-primary-dark">
+              New routine
+            </Text>
+          </Pressable>
+        </View>
+      )}
+
       {leaks.length > 0 && (
         <View className="mt-4 px-4">
-          <LeaksCard leaks={leaks} onPractice={(category) => setExpandedCategory(category)} />
+          <LeaksCard leaks={leaks} onPractice={practiceCategory} />
         </View>
       )}
 

@@ -72,15 +72,11 @@ export default function RoundsScreen() {
   // list into a sliver at the bottom.
   const listHeader = (
     <View>
-      <View className="pt-4">
-        <Text className="text-xl font-semibold text-text-primary dark:text-text-primary-dark">Rounds</Text>
-      </View>
-
       {activeRoundCourseName && (
         <Pressable
           testID="resume-round-banner"
           onPress={() => router.push('/round/active')}
-          className="mt-3 rounded-xl bg-accent-gold/15 px-4 py-3 dark:bg-accent-gold-dark/15"
+          className="mt-4 rounded-xl bg-accent-gold/15 px-4 py-3 dark:bg-accent-gold-dark/15"
         >
           <Text className="font-medium text-text-primary dark:text-text-primary-dark">
             Round in progress at {activeRoundCourseName} — Resume

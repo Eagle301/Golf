@@ -1,6 +1,7 @@
 import { View, Text, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '@/components/ui/Card';
+import { TRAINING_CATEGORY_LABELS, CATEGORY_ICONS } from '@/lib/training/categories';
 import type { Leak, LeakKind } from '@/lib/training/leaks';
 import type { TrainingCategory } from '@/types/database';
 
@@ -70,36 +71,56 @@ export function LeaksCard({ leaks, onPractice }: LeaksCardProps) {
             key={leak.kind}
             testID={`leak-row-${leak.kind}`}
             onPress={() => onPractice(leak.category)}
-            className={`py-2 ${index > 0 ? 'border-t border-gray-200 dark:border-border-dark' : 'mt-1'}`}
+            // Plain RN style rather than a NativeWind class: the pressed flag
+            // flips a className on and off mid-life, which is what trips
+            // css-interop's upgrade warning.
+            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+            className={`py-2.5 ${index > 0 ? 'border-t border-gray-200 dark:border-border-dark' : 'mt-2'}`}
           >
-            <View className="flex-row items-center justify-between">
-              <Text
-                testID={`leak-label-${leak.kind}`}
-                className={`text-sm ${
-                  index === 0
-                    ? 'font-semibold text-text-primary dark:text-text-primary-dark'
-                    : 'text-text-primary dark:text-text-primary-dark'
-                }`}
-              >
-                {LEAK_LABELS[leak.kind]}
-              </Text>
-              <Text
-                testID={`leak-value-${leak.kind}`}
-                className="text-sm text-text-secondary dark:text-text-secondary-dark"
-              >
-                {leak.strokesPerRound !== null
-                  ? `~${leak.strokesPerRound.toFixed(1)} strokes/round`
-                  : 'Not enough data'}
-              </Text>
+            <View className="flex-row items-start">
+              <View className="flex-1 pr-3">
+                <Text
+                  testID={`leak-label-${leak.kind}`}
+                  className={`text-sm ${
+                    index === 0
+                      ? 'font-semibold text-text-primary dark:text-text-primary-dark'
+                      : 'text-text-primary dark:text-text-primary-dark'
+                  }`}
+                >
+                  {LEAK_LABELS[leak.kind]}
+                </Text>
+                {detail !== null && (
+                  <Text
+                    testID={`leak-detail-${leak.kind}`}
+                    className="mt-0.5 text-xs text-text-secondary dark:text-text-secondary-dark"
+                  >
+                    {detail}
+                  </Text>
+                )}
+              </View>
+              {/* The trailing column is the action: what it costs you, then
+                  the category that fixes it and the chevron into it. */}
+              <View className="items-end">
+                <Text
+                  testID={`leak-value-${leak.kind}`}
+                  className="text-sm text-text-secondary dark:text-text-secondary-dark"
+                >
+                  {leak.strokesPerRound !== null
+                    ? `~${leak.strokesPerRound.toFixed(1)} strokes/round`
+                    : 'Not enough data'}
+                </Text>
+                <View className="mt-1 flex-row items-center">
+                  <Ionicons name={CATEGORY_ICONS[leak.category]} size={13} color="#166534" />
+                  <Text
+                    testID={`leak-category-${leak.kind}`}
+                    className="ml-1 text-xs font-semibold text-brand dark:text-accent-gold-dark"
+                  >
+                    {TRAINING_CATEGORY_LABELS[leak.category]}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={14} color="#166534" />
+                </View>
+              </View>
             </View>
-            {detail !== null && (
-              <Text
-                testID={`leak-detail-${leak.kind}`}
-                className="mt-0.5 text-xs text-text-secondary dark:text-text-secondary-dark"
-              >
-                {detail}
-              </Text>
-            )}
           </Pressable>
         );
       })}
