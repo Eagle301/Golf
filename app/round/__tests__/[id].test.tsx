@@ -402,3 +402,65 @@ describe('LiveRoundScreen submission validation', () => {
     expect(addPendingRound).toHaveBeenCalled();
   });
 });
+
+describe('LiveRoundScreen hole map button', () => {
+  const push = jest.fn();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (useRouter as jest.Mock).mockReturnValue({ push, replace: jest.fn(), back: jest.fn() });
+  });
+
+  function mockRound(latitude: number | null, longitude: number | null, currentHoleIndex = 0) {
+    (useActiveRound as jest.Mock).mockReturnValue({
+      activeRound: makeActiveRound({ latitude, longitude, currentHoleIndex }),
+      loading: false,
+      updateActiveRound: jest.fn(),
+      discardActiveRound: jest.fn(),
+      refetch: jest.fn(),
+    });
+  }
+
+  it('opens the map zoomed to the hole being played', () => {
+    mockRound(64.14977, -21.76237);
+
+    render(<LiveRoundScreen />);
+    fireEvent.press(screen.getByTestId('hole-map-button'));
+
+    expect(push).toHaveBeenCalledWith({
+      pathname: '/course/aerial',
+      params: {
+        id: 'course-1',
+        name: 'Test Course',
+        lat: '64.14977',
+        lng: '-21.76237',
+        hole: '1',
+      },
+    });
+  });
+
+  it('asks for the hole actually on screen, not always the first', () => {
+    mockRound(64.14977, -21.76237, 1);
+
+    render(<LiveRoundScreen />);
+    fireEvent.press(screen.getByTestId('hole-map-button'));
+
+    expect(push).toHaveBeenCalledWith(expect.objectContaining({ params: expect.objectContaining({ hole: '2' }) }));
+  });
+
+  it('hides the button for a course with no coordinates', () => {
+    mockRound(null, null);
+
+    render(<LiveRoundScreen />);
+
+    expect(screen.queryByTestId('hole-map-button')).toBeNull();
+  });
+
+  it('still shows the hole title beside it', () => {
+    mockRound(64.14977, -21.76237);
+
+    render(<LiveRoundScreen />);
+
+    expect(screen.getByText(/Hole 1 · Par 4/)).toBeTruthy();
+  });
+});

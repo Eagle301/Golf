@@ -169,6 +169,11 @@ export interface CourseAerial {
   latitude: number;
   longitude: number;
   holes?: HoleLine[];
+  /**
+   * Frame this hole's line instead of the whole course, and pick it out from
+   * the others. Falls back to the course view when that hole has no line.
+   */
+  focusHoleNumber?: number;
 }
 
 /** Zoom that frames a whole 18-hole course on a phone-sized map. */
@@ -206,9 +211,10 @@ const HOLE_LINE_CSS = `
  * read-only.
  */
 export function buildCourseAerialHtml(course: CourseAerial): string {
-  const { holes, ...rest } = course;
+  const { holes, focusHoleNumber, ...rest } = course;
   const payload = JSON.stringify(rest).replace(/</g, '\\u003c');
   const holesPayload = JSON.stringify(drawableHoles(holes)).replace(/</g, '\\u003c');
+  const focus = Number.isFinite(focusHoleNumber as number) ? Number(focusHoleNumber) : null;
 
   return `<!DOCTYPE html>
 <html>
@@ -250,6 +256,7 @@ ${HOLE_LINE_CSS}
 <script>
 const COURSE = ${payload};
 const HOLES = ${holesPayload};
+const FOCUS_HOLE = ${focus === null ? 'null' : focus};
 
 // Esri puts y before x in its tile path, unlike OSM's {z}/{x}/{y}.
 const satellite = L.tileLayer(
@@ -262,8 +269,22 @@ const streets = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 });
 
 const map = L.map('map', { zoomControl: false, layers: [satellite] });
-map.setView([COURSE.latitude, COURSE.longitude], ${AERIAL_ZOOM});
 L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+// The line of the hole we were asked to frame, if it has one drawn.
+const focusHole = FOCUS_HOLE == null ? null : HOLES.find((hole) => hole.hole_number === FOCUS_HOLE);
+const focusPath = (focusHole && focusHole.path) || null;
+
+// animate:false throughout - an animated pan started in the same tick as the
+// layers being added gets clobbered, and the map snaps back.
+function frameView() {
+  if (focusPath && focusPath.length >= 2) {
+    map.fitBounds(L.latLngBounds(focusPath).pad(0.25), { maxZoom: 18, animate: false });
+  } else {
+    map.setView([COURSE.latitude, COURSE.longitude], ${AERIAL_ZOOM}, { animate: false });
+  }
+}
+frameView();
 
 // Course name via textContent - never markup - so quotes and angle
 // brackets in a course name stay text.
@@ -276,19 +297,22 @@ if (COURSE.club) {
 }
 
 // Hole lines: a white line tee to green, a dot at each end, and the hole
-// number where the pure module said it should sit.
+// number where the pure module said it should sit. The hole we were asked to
+// focus on is drawn in the accent colour so it reads as the subject.
 for (const hole of HOLES) {
-  L.polyline(hole.path, { color: '#ffffff', weight: 3, opacity: 0.9 }).addTo(map);
+  const focused = FOCUS_HOLE != null && hole.hole_number === FOCUS_HOLE;
+  const colour = focused ? '#34D399' : '#ffffff';
+  L.polyline(hole.path, { color: colour, weight: focused ? 4 : 3, opacity: 0.9 }).addTo(map);
   for (const end of [hole.path[0], hole.path[hole.path.length - 1]]) {
     L.circleMarker(end, {
-      radius: 4, color: '#ffffff', weight: 2, fillColor: '#ffffff', fillOpacity: 1,
+      radius: 4, color: colour, weight: 2, fillColor: colour, fillOpacity: 1,
     }).addTo(map);
   }
   L.marker(hole.label, {
     interactive: false,
     icon: L.divIcon({
       className: '',
-      html: '<div class="hole-badge">' + String(Number(hole.hole_number)) + '</div>',
+      html: '<div class="hole-badge' + (focused ? ' active' : '') + '">' + String(Number(hole.hole_number)) + '</div>',
       iconSize: [22, 22],
       iconAnchor: [11, 11],
     }),
@@ -320,7 +344,9 @@ function recentreWhenSized() {
     setTimeout(recentreWhenSized, 100);
     return;
   }
-  map.setView([COURSE.latitude, COURSE.longitude], ${AERIAL_ZOOM});
+  // frameView, not a plain re-centre: this fires after layout settles and
+  // would otherwise throw away the focused hole's framing.
+  frameView();
 }
 window.addEventListener('load', recentreWhenSized);
 setTimeout(recentreWhenSized, 0);
@@ -498,12 +524,25 @@ function frameActiveHole() {
   }
 }
 
+/**
+ * Moving to another hole keeps the zoom you were working at - re-fitting
+ * would throw it away on every Next. When the new hole already has a line we
+ * slide across to it at that same zoom; when it doesn't, there is nowhere to
+ * aim, so the view stays where you left it and the next hole is usually
+ * already on screen.
+ */
+function followActiveHole() {
+  const path = activePath();
+  if (path.length === 0) return;
+  map.setView(L.latLngBounds(path).getCenter(), map.getZoom(), { animate: false });
+}
+
 window.__applyState = function (next) {
   const parsed = typeof next === 'string' ? JSON.parse(next) : next;
   const activeChanged = parsed.active !== STATE.active;
   STATE = parsed;
   render();
-  if (activeChanged) frameActiveHole();
+  if (activeChanged) followActiveHole();
 };
 
 // The web build hosts this document in an iframe, where state arrives as a

@@ -87,6 +87,23 @@ export default function LiveRoundScreen() {
     const isFinishPanel = currentHoleIndex > hole_count;
     const hole = !isOverview && !isReviewPanel && !isFinishPanel ? holeLogs[currentHoleIndex] : null;
 
+    // Rounds started before the course cache carried coordinates get no map.
+    const { latitude, longitude } = activeRound;
+    const mappable = latitude != null && longitude != null;
+
+    function openHoleMap(holeNumber: number) {
+      router.push({
+        pathname: '/course/aerial',
+        params: {
+          id: activeRound!.course_id,
+          name: activeRound!.course_name,
+          lat: String(latitude),
+          lng: String(longitude),
+          hole: String(holeNumber),
+        },
+      });
+    }
+
     const courseHandicap =
       activeRound.handicap_at_start != null &&
       activeRound.course_rating != null &&
@@ -366,19 +383,31 @@ export default function LiveRoundScreen() {
 
       body = (
         <ScrollView className="flex-1 bg-background px-4 pt-4 dark:bg-background-dark" testID="hole-view">
-          <Text className="text-xl font-semibold text-text-primary dark:text-text-primary-dark">
-            Hole {hole.hole_number} · Par {hole.par}
-            {extraStrokes > 0 ? ` (${adjustedPar})` : ''}
-            {hole.length_meters != null ? (
-              <Text
-                testID="hole-length"
-                className="text-base font-normal text-text-secondary dark:text-text-secondary-dark"
+          <View className="flex-row items-center justify-between">
+            <Text className="shrink text-xl font-semibold text-text-primary dark:text-text-primary-dark">
+              Hole {hole.hole_number} · Par {hole.par}
+              {extraStrokes > 0 ? ` (${adjustedPar})` : ''}
+              {hole.length_meters != null ? (
+                <Text
+                  testID="hole-length"
+                  className="text-base font-normal text-text-secondary dark:text-text-secondary-dark"
+                >
+                  {' '}
+                  · {hole.length_meters}m
+                </Text>
+              ) : null}
+            </Text>
+            {mappable && (
+              <Pressable
+                testID="hole-map-button"
+                onPress={() => openHoleMap(hole.hole_number)}
+                hitSlop={8}
+                className="ml-2 shrink-0 rounded-full border border-brand px-3 py-1 dark:border-accent-gold-dark"
               >
-                {' '}
-                · {hole.length_meters}m
-              </Text>
-            ) : null}
-          </Text>
+                <Text className="text-xs font-semibold text-brand dark:text-accent-gold-dark">MAP</Text>
+              </Pressable>
+            )}
+          </View>
 
           <Text className="mb-1 mt-4 text-sm font-medium text-text-primary dark:text-text-primary-dark">
             Score

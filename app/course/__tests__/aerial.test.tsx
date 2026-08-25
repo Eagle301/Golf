@@ -133,3 +133,63 @@ describe('CourseAerialScreen hole lines', () => {
     expect((CourseAerial as jest.Mock).mock.calls.at(-1)[0].course.holes).toEqual([]);
   });
 });
+
+describe('CourseAerialScreen focused on a hole', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  function mockHoles() {
+    (useHoleGeometry as jest.Mock).mockReturnValue({
+      holes: [
+        { id: 'h1', hole_number: 1, par: 4, path: [[64.15, -21.765], [64.152, -21.76]] },
+        { id: 'h2', hole_number: 2, par: 3, path: [] },
+      ],
+      loading: false,
+      error: null,
+      refetch: jest.fn(),
+    });
+  }
+
+  it('frames the hole named in the route', () => {
+    mockHoles();
+    (useLocalSearchParams as jest.Mock).mockReturnValue({
+      id: 'course-1',
+      name: 'Landið',
+      lat: '64.14977',
+      lng: '-21.76237',
+      hole: '1',
+    });
+
+    render(<CourseAerialScreen />);
+
+    expect((CourseAerial as jest.Mock).mock.calls.at(-1)[0].course.focusHoleNumber).toBe(1);
+  });
+
+  it('shows the whole course when no hole was named', () => {
+    mockHoles();
+    (useLocalSearchParams as jest.Mock).mockReturnValue({
+      id: 'course-1',
+      name: 'Landið',
+      lat: '64.14977',
+      lng: '-21.76237',
+    });
+
+    render(<CourseAerialScreen />);
+
+    expect((CourseAerial as jest.Mock).mock.calls.at(-1)[0].course.focusHoleNumber).toBeUndefined();
+  });
+
+  it('ignores a hole number that is not a number', () => {
+    mockHoles();
+    (useLocalSearchParams as jest.Mock).mockReturnValue({
+      id: 'course-1',
+      name: 'Landið',
+      lat: '64.14977',
+      lng: '-21.76237',
+      hole: 'first',
+    });
+
+    render(<CourseAerialScreen />);
+
+    expect((CourseAerial as jest.Mock).mock.calls.at(-1)[0].course.focusHoleNumber).toBeUndefined();
+  });
+});

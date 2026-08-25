@@ -23,12 +23,13 @@ function parseCoordinate(raw: string | undefined, limit: number): number | null 
  * another fetch.
  */
 export default function CourseAerialScreen() {
-  const { id, name, club, lat, lng } = useLocalSearchParams<{
+  const { id, name, club, lat, lng, hole } = useLocalSearchParams<{
     id?: string;
     name?: string;
     club?: string;
     lat?: string;
     lng?: string;
+    hole?: string;
   }>();
 
   // Hole lines are drawn when the caller knows which course this is; a bare
@@ -38,6 +39,8 @@ export default function CourseAerialScreen() {
   const latitude = parseCoordinate(lat, 90);
   const longitude = parseCoordinate(lng, 180);
   const courseName = name ?? 'Course';
+  // A hole to zoom to, when the caller knows which hole is being played.
+  const focusHoleNumber = Number.isInteger(Number(hole)) && hole !== '' ? Number(hole) : undefined;
 
   return (
     <>
@@ -55,7 +58,8 @@ export default function CourseAerialScreen() {
               club: club ?? null,
               latitude,
               longitude,
-              holes: holes.map((hole) => ({ hole_number: hole.hole_number, path: hole.path })),
+              holes: holes.map((h) => ({ hole_number: h.hole_number, path: h.path })),
+              focusHoleNumber,
             }}
           />
         </View>

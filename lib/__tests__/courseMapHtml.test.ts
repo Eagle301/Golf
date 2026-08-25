@@ -91,7 +91,7 @@ describe('buildCourseAerialHtml', () => {
 
   it('centres the view on the course at course-level zoom', () => {
     const html = buildCourseAerialHtml(course);
-    expect(html).toContain('setView([COURSE.latitude, COURSE.longitude], 15)');
+    expect(html).toContain('setView([COURSE.latitude, COURSE.longitude], 15, { animate: false })');
   });
 
   it('uses Esri World Imagery tiles, whose path puts y before x', () => {
@@ -259,5 +259,74 @@ describe('buildHoleEditorHtml live updates', () => {
     const html = buildHoleEditorHtml({ course, holes, activeHoleNumber: 1 });
     // Re-framing on every point would yank the map around mid-edit.
     expect(html).toContain('activeChanged');
+  });
+});
+
+describe('buildCourseAerialHtml focused on one hole', () => {
+  const course: CourseAerial = {
+    name: 'Landið',
+    club: 'GR',
+    latitude: 64.14977,
+    longitude: -21.76237,
+  };
+  const holes = [
+    { hole_number: 1, path: [[64.15, -21.765], [64.152, -21.76]] as [number, number][] },
+    { hole_number: 2, path: [[64.153, -21.762], [64.155, -21.758]] as [number, number][] },
+  ];
+
+  it('tells the document which hole to frame', () => {
+    const html = buildCourseAerialHtml({ ...course, holes, focusHoleNumber: 1 });
+    expect(html).toMatch(/const FOCUS_HOLE = 1;/);
+  });
+
+  it('frames that hole rather than the whole course', () => {
+    const html = buildCourseAerialHtml({ ...course, holes, focusHoleNumber: 1 });
+    expect(html).toContain('focusPath');
+    expect(html).toContain('fitBounds');
+  });
+
+  it('marks the focused hole so it stands out from the rest', () => {
+    const html = buildCourseAerialHtml({ ...course, holes, focusHoleNumber: 2 });
+    const focus = html.match(/const FOCUS_HOLE = (\d+);/);
+    expect(focus![1]).toBe('2');
+    expect(html).toContain('FOCUS_HOLE');
+  });
+
+  it('has no focus when none was asked for', () => {
+    const html = buildCourseAerialHtml({ ...course, holes });
+    expect(html).toMatch(/const FOCUS_HOLE = null;/);
+  });
+
+  it('still centres on the course when the focused hole has no line', () => {
+    const html = buildCourseAerialHtml({ ...course, holes: [], focusHoleNumber: 1 });
+    expect(JSON.parse(html.match(/const HOLES = (\[.*?\]);/s)![1])).toEqual([]);
+    expect(html).toContain('COURSE.latitude');
+  });
+});
+
+describe('buildHoleEditorHtml view handling between holes', () => {
+  const course: CourseAerial = {
+    name: 'Landið',
+    club: 'GR',
+    latitude: 64.14977,
+    longitude: -21.76237,
+  };
+  const holes = [
+    { hole_number: 1, path: [[64.15, -21.765], [64.152, -21.76]] as [number, number][] },
+    { hole_number: 2, path: [] as [number, number][] },
+  ];
+
+  it('keeps the zoom the user chose when following a hole switch', () => {
+    const html = buildHoleEditorHtml({ course, holes, activeHoleNumber: 1 });
+    // Panning at map.getZoom() rather than re-fitting is what stops the zoom
+    // resetting on every Next.
+    expect(html).toContain('followActiveHole');
+    expect(html).toContain('map.setView(L.latLngBounds(path).getCenter(), map.getZoom()');
+  });
+
+  it('still frames the hole when the document first opens', () => {
+    const html = buildHoleEditorHtml({ course, holes, activeHoleNumber: 1 });
+    expect(html).toContain('frameActiveHole');
+    expect(html).toContain('fitBounds');
   });
 });
