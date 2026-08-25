@@ -42,3 +42,15 @@ describe('StepperInput', () => {
     expect(onChange).toHaveBeenCalledWith('12');
   });
 });
+
+describe('StepperInput layout', () => {
+  it('keeps an explicit width on the value field', () => {
+    // On web a TextInput is an <input>, which otherwise claims the browser's
+    // default 20-character width (~400px at this font size) and pushes the
+    // - and + buttons off both edges of a phone screen. Measured at 375px:
+    // the row was 496px wide inside a 311px card.
+    render(<StepperInput value="7" onChange={jest.fn()} testID="stepper" />);
+
+    expect(screen.getByTestId('stepper-value').props.className).toContain('w-24');
+  });
+});

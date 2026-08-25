@@ -47,9 +47,13 @@ export function StepperInput({ value, onChange, testID }: StepperInputProps) {
         </Text>
       </Pressable>
 
+      {/* w-24 is load-bearing on web: a TextInput becomes an <input>, which
+          claims the browser's default 20-character intrinsic width - about
+          400px at this font size - and min-width alone never reins it in.
+          That pushed the - and + buttons off both edges of a phone screen. */}
       <TextInput
         testID={`${testID}-value`}
-        className="mx-1 min-w-[56px] py-1 text-center text-3xl font-bold text-text-primary dark:text-text-primary-dark"
+        className="mx-1 w-24 min-w-[56px] py-1 text-center text-3xl font-bold text-text-primary dark:text-text-primary-dark"
         keyboardType="numeric"
         placeholder="0"
         value={value}
