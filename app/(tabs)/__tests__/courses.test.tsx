@@ -202,3 +202,81 @@ describe('CoursesScreen', () => {
     });
   });
 });
+
+describe('CoursesScreen search', () => {
+  const push = jest.fn();
+  const refetch = jest.fn();
+
+  const courses = [
+    { id: '1', name: 'Mýrin', club: 'GKG', total_par: 34, latitude: 64.08, longitude: -21.88, tee_boxes: [] },
+    { id: '2', name: 'Korpa Landið', club: 'GR', total_par: 36, latitude: 64.14, longitude: -21.76, tee_boxes: [] },
+    { id: '3', name: 'Þorláksvöllur', club: 'GÞ', total_par: 72, latitude: 63.87, longitude: -21.37, tee_boxes: [] },
+  ];
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (useRouter as jest.Mock).mockReturnValue({ push });
+    (useCourses as jest.Mock).mockReturnValue({ courses, loading: false, error: null, refetch });
+  });
+
+  it('lists every course before anything is typed', () => {
+    render(<CoursesScreen />);
+
+    expect(screen.getByTestId('course-row-1')).toBeTruthy();
+    expect(screen.getByTestId('course-row-2')).toBeTruthy();
+    expect(screen.getByTestId('course-row-3')).toBeTruthy();
+  });
+
+  it('narrows the list as you type', () => {
+    render(<CoursesScreen />);
+
+    fireEvent.changeText(screen.getByTestId('courses-search-input'), 'korpa');
+
+    expect(screen.getByTestId('course-row-2')).toBeTruthy();
+    expect(screen.queryByTestId('course-row-1')).toBeNull();
+    expect(screen.queryByTestId('course-row-3')).toBeNull();
+  });
+
+  it('finds an accented name typed without accents', () => {
+    render(<CoursesScreen />);
+
+    fireEvent.changeText(screen.getByTestId('courses-search-input'), 'thorlaks');
+
+    expect(screen.getByTestId('course-row-3')).toBeTruthy();
+    expect(screen.queryByTestId('course-row-1')).toBeNull();
+  });
+
+  it('searches by club too', () => {
+    render(<CoursesScreen />);
+
+    fireEvent.changeText(screen.getByTestId('courses-search-input'), 'GKG');
+
+    expect(screen.getByTestId('course-row-1')).toBeTruthy();
+    expect(screen.queryByTestId('course-row-2')).toBeNull();
+  });
+
+  it('says so when nothing matches, rather than showing an empty page', () => {
+    render(<CoursesScreen />);
+
+    fireEvent.changeText(screen.getByTestId('courses-search-input'), 'st andrews');
+
+    expect(screen.getByText('No courses match "st andrews".')).toBeTruthy();
+  });
+
+  it('narrows the map to the same courses', () => {
+    render(<CoursesScreen />);
+    fireEvent.changeText(screen.getByTestId('courses-search-input'), 'korpa');
+    fireEvent.press(screen.getByTestId('courses-view-toggle'));
+
+    const props = (CourseMap as jest.Mock).mock.calls.at(-1)[0];
+    expect(props.markers.map((m: any) => m.id)).toEqual(['2']);
+  });
+
+  it('keeps the add button reachable while searching', () => {
+    render(<CoursesScreen />);
+    fireEvent.changeText(screen.getByTestId('courses-search-input'), 'st andrews');
+
+    fireEvent.press(screen.getByTestId('add-course-button'));
+    expect(push).toHaveBeenCalledWith('/course/new');
+  });
+});

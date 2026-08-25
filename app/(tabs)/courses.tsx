@@ -6,13 +6,16 @@ import {
   Pressable,
   ActivityIndicator,
   RefreshControl,
+  TextInput,
   Platform,
   Modal,
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useCourses } from '@/lib/hooks/useCourses';
 import { Button } from '@/components/ui/Button';
 import { CourseMap } from '@/components/course/CourseMap';
+import { filterCourses } from '@/lib/courseSearch';
 import { parseCourseCsv } from '@/lib/csv/parseCourseCsv';
 import { getCachedCourses } from '@/lib/offline/courseCache';
 import { setActiveRound } from '@/lib/offline/activeRound';
@@ -27,6 +30,10 @@ export default function CoursesScreen() {
   const [importError, setImportError] = useState<string | null>(null);
   const [view, setView] = useState<'list' | 'map'>('list');
   const [teePickerCourse, setTeePickerCourse] = useState<CachedCourse | null>(null);
+  const [query, setQuery] = useState('');
+
+  // The search narrows what you are looking at, so the map follows the list.
+  const visibleCourses = filterCourses(courses, query);
 
   async function startRound(course: CachedCourse, tee: CachedTeeBox) {
     const handicap = await getCurrentHandicap();
@@ -102,31 +109,49 @@ export default function CoursesScreen() {
 
   return (
     <View className="flex-1 bg-background dark:bg-background-dark">
-      <View className="flex-row items-center justify-between px-4 pt-4">
-        <Text className="text-xl font-semibold text-text-primary dark:text-text-primary-dark">Courses</Text>
-        <View className="flex-row items-center gap-3">
-          <Pressable
-            testID="courses-view-toggle"
-            onPress={() => setView((prev) => (prev === 'list' ? 'map' : 'list'))}
-            className="rounded-xl bg-brand px-5 py-2 dark:bg-accent-gold-dark"
-          >
-            <Text className="text-base font-semibold text-white dark:text-gray-900">
-              {view === 'list' ? 'Map' : 'List'}
-            </Text>
-          </Pressable>
-          {Platform.OS === 'web' && (
-            <Pressable testID="import-csv-button" onPress={handleImportPress}>
-              <Text className="font-medium text-brand dark:text-accent-gold-dark">Import CSV</Text>
+      {/* The green nav header already names the page, so this row carries the
+          search field and the actions together - the field takes whatever
+          width the buttons leave. */}
+      <View className="flex-row items-center gap-3 px-4 pt-4">
+        <View className="flex-1 flex-row items-center rounded-xl border border-gray-300 px-3 dark:border-border-dark dark:bg-surface-dark">
+          <Ionicons name="search" size={16} color="#9CA3AF" />
+          <TextInput
+            testID="courses-search-input"
+            className="ml-2 flex-1 py-2 text-base text-text-primary dark:text-text-primary-dark"
+            placeholder="Search courses"
+            placeholderTextColor="#9CA3AF"
+            autoCapitalize="none"
+            autoCorrect={false}
+            value={query}
+            onChangeText={setQuery}
+          />
+          {query !== '' && (
+            <Pressable testID="courses-search-clear" onPress={() => setQuery('')} hitSlop={8}>
+              <Ionicons name="close-circle" size={18} color="#9CA3AF" />
             </Pressable>
           )}
-          <Pressable
-            testID="add-course-button"
-            onPress={() => router.push('/course/new')}
-            className="h-9 w-9 items-center justify-center rounded-full bg-brand dark:bg-accent-gold-dark"
-          >
-            <Text className="text-lg text-white dark:text-gray-900">+</Text>
-          </Pressable>
         </View>
+        <Pressable
+          testID="courses-view-toggle"
+          onPress={() => setView((prev) => (prev === 'list' ? 'map' : 'list'))}
+          className="rounded-xl bg-brand px-5 py-2 dark:bg-accent-gold-dark"
+        >
+          <Text className="text-base font-semibold text-white dark:text-gray-900">
+            {view === 'list' ? 'Map' : 'List'}
+          </Text>
+        </Pressable>
+        {Platform.OS === 'web' && (
+          <Pressable testID="import-csv-button" onPress={handleImportPress}>
+            <Text className="font-medium text-brand dark:text-accent-gold-dark">Import CSV</Text>
+          </Pressable>
+        )}
+        <Pressable
+          testID="add-course-button"
+          onPress={() => router.push('/course/new')}
+          className="h-9 w-9 items-center justify-center rounded-full bg-brand dark:bg-accent-gold-dark"
+        >
+          <Text className="text-lg text-white dark:text-gray-900">+</Text>
+        </Pressable>
       </View>
 
       {importError && (
@@ -137,7 +162,7 @@ export default function CoursesScreen() {
 
       {view === 'map' ? (
         (() => {
-          const markers = courses
+          const markers = visibleCourses
             .filter((c) => c.latitude != null && c.longitude != null)
             .map((c) => ({
               id: c.id,
@@ -146,7 +171,7 @@ export default function CoursesScreen() {
               latitude: c.latitude as number,
               longitude: c.longitude as number,
             }));
-          const missing = courses.length - markers.length;
+          const missing = visibleCourses.length - markers.length;
           return (
             <View className="mt-3 flex-1">
               <CourseMap
@@ -174,11 +199,20 @@ export default function CoursesScreen() {
             containerClassName="px-6"
           />
         </View>
+      ) : visibleCourses.length === 0 ? (
+        <View className="flex-1 items-center px-6 pt-10">
+          <Text
+            testID="courses-search-empty"
+            className="text-center text-text-secondary dark:text-text-secondary-dark"
+          >
+            {`No courses match "${query.trim()}".`}
+          </Text>
+        </View>
       ) : (
         <FlatList
           className="px-4"
           showsVerticalScrollIndicator={false}
-          data={courses}
+          data={visibleCourses}
           keyExtractor={(item) => item.id}
           refreshControl={
             <RefreshControl testID="courses-refresh-control" refreshing={loading} onRefresh={refetch} />
