@@ -25,6 +25,11 @@ export interface Course {
   longitude: number | null;
   /** True when this nine carries the even 18-hole stroke indexes (see lib/calculations strokesForHole). */
   nine_si_even: boolean;
+  /**
+   * Slug of the course on rastimar.golf.is when it came from the GSÍ import;
+   * null for courses entered by hand. Also the import's idempotency key.
+   */
+  gsi_slug: string | null;
   created_at: string;
 }
 
