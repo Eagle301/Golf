@@ -10,6 +10,7 @@ function makeHole(overrides: Partial<ScorecardHole> & { hole_number: number }): 
     fairway_hit: null,
     gir: null,
     penalties: null,
+    chip_shots: null,
     ...overrides,
   };
 }
@@ -82,6 +83,59 @@ describe('Scorecard', () => {
     expect(screen.getByTestId('scorecard-gir-stat').props.children.join('')).toBe('2/3');
   });
 
+  it('derives GIR from score and putts when the hole carries no stored value', () => {
+    // Mid-round, gir is left null until the round is finished, so the stat has
+    // to fall back to the same score-minus-putts rule the hole screen shows.
+    const holes = [
+      makeHole({ hole_number: 1, par: 4, score: 4, putts: 2, gir: null }), // 4-2 <= 4-2 -> hit
+      makeHole({ hole_number: 2, par: 4, score: 5, putts: 2, gir: null }), // 5-2 > 4-2 -> miss
+      makeHole({ hole_number: 3, par: 5, score: 5, putts: 2, gir: null }), // 5-2 <= 5-2 -> hit
+    ];
+    render(<Scorecard holes={holes} courseHandicap={null} />);
+
+    expect(screen.getByTestId('scorecard-gir-stat').props.children.join('')).toBe('2/3');
+  });
+
+  it('keeps a hand-set GIR in preference to the derived one', () => {
+    const holes = [
+      // Score/putts alone would derive a hit, but the player said otherwise.
+      makeHole({ hole_number: 1, par: 4, score: 4, putts: 2, gir: false }),
+      // ...and the reverse: derived would be a miss, player said hit.
+      makeHole({ hole_number: 2, par: 4, score: 6, putts: 2, gir: true }),
+    ];
+    render(<Scorecard holes={holes} courseHandicap={null} />);
+
+    expect(screen.getByTestId('scorecard-gir-stat').props.children.join('')).toBe('1/2');
+  });
+
+  it('does not count unplayed holes towards GIR', () => {
+    const holes = [
+      makeHole({ hole_number: 1, par: 4, score: 4, putts: 2, gir: null }),
+      makeHole({ hole_number: 2, par: 4, score: null, putts: null, gir: null }),
+    ];
+    render(<Scorecard holes={holes} courseHandicap={null} />);
+
+    expect(screen.getByTestId('scorecard-gir-stat').props.children.join('')).toBe('1/2');
+  });
+
+  it('sums chip shots across all holes', () => {
+    const holes = [
+      makeHole({ hole_number: 1, chip_shots: 1, score: 5, putts: 2 }),
+      makeHole({ hole_number: 2, chip_shots: 2, score: 6, putts: 3 }),
+      makeHole({ hole_number: 3, chip_shots: 0, score: 4, putts: 2 }),
+    ];
+    render(<Scorecard holes={holes} courseHandicap={null} />);
+
+    expect(screen.getByTestId('scorecard-chips-stat').props.children).toBe(3);
+  });
+
+  it('shows a dash for chip shots when no hole carries a count', () => {
+    const holes = [makeHole({ hole_number: 1, score: 4, putts: 2 })];
+    render(<Scorecard holes={holes} courseHandicap={null} />);
+
+    expect(screen.getByTestId('scorecard-chips-stat').props.children).toBe('-');
+  });
+
   it('shows the gross/net total score when courseHandicap is provided', () => {
     const holes = [
       makeHole({ hole_number: 1, stroke_index: 1, par: 4, score: 5, putts: 2 }),
@@ -123,12 +177,14 @@ describe('Scorecard', () => {
     expect(screen.getByTestId('scorecard-total-points').props.children).toBe(5);
   });
 
-  it('orders the bottom stats as Putts, Penalties, Fairway hits, Green hits', () => {
-    const holes = [makeHole({ hole_number: 1, score: 4, putts: 2, penalties: 0 })];
+  it('orders the bottom stats as Putts, Chips, Penalties, Fairway hits, Green hits', () => {
+    const holes = [makeHole({ hole_number: 1, score: 4, putts: 2, penalties: 0, chip_shots: 0 })];
     render(<Scorecard holes={holes} courseHandicap={null} />);
 
-    const labels = screen.getAllByText(/^(Putts|Penalties|Fairway hits|Green hits)$/).map((n) => n.props.children);
-    expect(labels).toEqual(['Putts', 'Penalties', 'Fairway hits', 'Green hits']);
+    const labels = screen
+      .getAllByText(/^(Putts|Chips|Penalties|Fairway hits|Green hits)$/)
+      .map((n) => n.props.children);
+    expect(labels).toEqual(['Putts', 'Chips', 'Penalties', 'Fairway hits', 'Green hits']);
   });
 
   it('does not show the round summary section without roundSummary', () => {

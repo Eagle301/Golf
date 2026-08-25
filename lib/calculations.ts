@@ -37,6 +37,25 @@ export function calculateGir(score: number, putts: number, par: number): boolean
 }
 
 /**
+ * A hole's GIR as it should be read anywhere the round is displayed.
+ *
+ * A round in progress leaves gir null until it's finished - only a hand-set
+ * value is stored before then - so anything summarising a live round has to
+ * derive the untouched holes the same way the hole screen shows them.
+ * Returns null for a hole that hasn't been played yet.
+ */
+export function resolveGir(hole: {
+  gir: boolean | null;
+  score: number | null;
+  putts: number | null;
+  par: number;
+}): boolean | null {
+  if (hole.gir !== null) return hole.gir;
+  if (hole.score === null || hole.putts === null) return null;
+  return calculateGir(hole.score, hole.putts, hole.par);
+}
+
+/**
  * Round handicap differential = (score - Course Rating) * (113 / Slope Rating).
  *
  * score is expected to be the brutto (net-double-bogey-capped) score from

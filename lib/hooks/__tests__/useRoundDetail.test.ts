@@ -57,6 +57,42 @@ describe('useRoundDetail', () => {
     });
   });
 
+  it('carries each hole\'s chip shots through to the detail', async () => {
+    const roundBuilder = createQueryBuilderMock({
+      data: {
+        handicap_at_time: null,
+        score_differential: null,
+        tee_boxes: null,
+        courses: { name: 'Pebble', total_par: 72, hole_count: 18 },
+      },
+      error: null,
+    });
+    const holeLogsBuilder = createQueryBuilderMock({
+      data: [
+        {
+          score: 5,
+          putts: 2,
+          fairway_hit: 'yes',
+          gir: false,
+          penalties: 0,
+          chip_shots: 2,
+          holes: { hole_number: 1, par: 4, stroke_index: 7 },
+        },
+      ],
+      error: null,
+    });
+    (supabase.from as jest.Mock).mockImplementation((table: string) =>
+      table === 'rounds' ? roundBuilder : holeLogsBuilder
+    );
+
+    const { result } = renderHook(() => useRoundDetail('round-1'));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(holeLogsBuilder.select).toHaveBeenCalledWith(expect.stringContaining('chip_shots'));
+    expect(result.current.roundDetail?.holes[0].chip_shots).toBe(2);
+  });
+
   it('leaves tee fields null for rounds without a tee box', async () => {
     const roundBuilder = createQueryBuilderMock({
       data: {

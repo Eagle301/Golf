@@ -6,6 +6,7 @@ import {
   toSuperscript,
   calculateBruttoScore,
   calculateNetParForNine,
+  resolveGir,
 } from '@/lib/calculations';
 import type { FairwayHit } from '@/types/database';
 import { Card } from '@/components/ui/Card';
@@ -19,6 +20,7 @@ export interface ScorecardHole {
   fairway_hit: FairwayHit | null;
   gir: boolean | null;
   penalties?: number | null;
+  chip_shots?: number | null;
 }
 
 /** Handicap Index, Course Handicap, and Score Differential for a completed round - shown alongside the bottom stats when reviewing history. */
@@ -246,7 +248,10 @@ export function Scorecard({ holes, courseHandicap, nineSiEven = false, onSelectH
   const totalPenalties = holes.every((h) => h.penalties != null)
     ? holes.reduce((sum, h) => sum + (h.penalties ?? 0), 0)
     : null;
-  const girHit = holes.filter((h) => h.gir === true).length;
+  const totalChips = holes.every((h) => h.chip_shots != null)
+    ? holes.reduce((sum, h) => sum + (h.chip_shots ?? 0), 0)
+    : null;
+  const girHit = holes.filter((h) => resolveGir(h) === true).length;
 
   return (
     <View testID="scorecard">
@@ -302,6 +307,15 @@ export function Scorecard({ holes, courseHandicap, nineSiEven = false, onSelectH
           <Text className="text-sm text-text-secondary dark:text-text-secondary-dark">Putts</Text>
           <Text testID="scorecard-putts-stat" className="text-sm font-medium text-text-primary dark:text-text-primary-dark">
             {totalPutts ?? '-'}
+          </Text>
+        </View>
+        <View className="mb-1 flex-row justify-between">
+          <Text className="text-sm text-text-secondary dark:text-text-secondary-dark">Chips</Text>
+          <Text
+            testID="scorecard-chips-stat"
+            className="text-sm font-medium text-text-primary dark:text-text-primary-dark"
+          >
+            {totalChips ?? '-'}
           </Text>
         </View>
         <View className="mb-1 flex-row justify-between">

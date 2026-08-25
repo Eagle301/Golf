@@ -12,6 +12,7 @@ export interface RoundDetailHole {
   fairway_hit: FairwayHit | null;
   gir: boolean | null;
   penalties: number | null;
+  chip_shots: number | null;
 }
 
 export interface RoundDetail {
@@ -58,7 +59,7 @@ export function useRoundDetail(roundId: string): UseRoundDetailResult {
 
     const { data: holeLogs, error: holeLogsError } = await supabase
       .from('hole_logs')
-      .select('score, putts, fairway_hit, gir, penalties, holes(hole_number, par, stroke_index)')
+      .select('score, putts, fairway_hit, gir, penalties, chip_shots, holes(hole_number, par, stroke_index)')
       .eq('round_id', roundId);
 
     if (holeLogsError || !holeLogs) {
@@ -81,6 +82,7 @@ export function useRoundDetail(roundId: string): UseRoundDetailResult {
         fairway_hit: h.fairway_hit,
         gir: h.gir,
         penalties: h.penalties,
+        chip_shots: h.chip_shots,
       }))
       .sort((a, b) => a.hole_number - b.hole_number);
 
