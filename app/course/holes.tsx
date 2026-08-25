@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { HoleLineEditor } from '@/components/course/HoleLineEditor';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { HeaderBackButton } from '@/components/ui/HeaderBackButton';
 import {
   useHoleGeometry,
   saveHoleGeometry,
@@ -134,13 +135,25 @@ export default function HoleLinesScreen() {
     setDirty(true);
   }
 
-  async function handleSave() {
+  const isLastHole = holes.length > 0 && activeHoleNumber >= holes[holes.length - 1].hole_number;
+
+  /**
+   * Saves as it goes and steps to the next hole, so tracing a course is one
+   * pass through it rather than a save after every line. On the last hole
+   * there is nowhere left to go, so it finishes.
+   */
+  async function handleNext() {
     setSaveError(null);
     setSaving(true);
     try {
       await saveHoleGeometry(holes.map((hole) => ({ hole_id: hole.id, path: hole.path })));
       setDirty(false);
-      router.back();
+      if (isLastHole) {
+        router.back();
+        return;
+      }
+      const next = holes.find((hole) => hole.hole_number > activeHoleNumber);
+      if (next) setActiveHoleNumber(next.hole_number);
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Failed to save hole lines.');
     } finally {
@@ -302,10 +315,10 @@ export default function HoleLinesScreen() {
               textClassName="text-sm"
             />
             <Button
-              testID="save-lines-button"
-              label="Save"
+              testID="next-hole-button"
+              label={isLastHole ? 'Done' : 'Next hole'}
               disabled={saving}
-              onPress={handleSave}
+              onPress={handleNext}
               containerClassName="flex-1"
               textClassName="text-sm"
             />
@@ -320,11 +333,9 @@ export default function HoleLinesScreen() {
       <Stack.Screen
         options={{
           title: name ? `${name} · lines` : 'Hole lines',
-          headerLeft: () => (
-            <Pressable testID="holes-back-button" onPress={handleBack} className="ml-2" hitSlop={8}>
-              <Text className="text-base text-white">Back</Text>
-            </Pressable>
-          ),
+          // The app's own back arrow, not a one-off - it just needs to ask
+          // about unsaved lines before leaving.
+          headerLeft: () => <HeaderBackButton fallback="/courses" onPress={handleBack} />,
         }}
       />
       {body}

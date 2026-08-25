@@ -45,7 +45,7 @@ function tapMap(point: { latitude: number; longitude: number }) {
 function pressHeaderBack() {
   const options = (Stack.Screen as unknown as jest.Mock).mock.calls.at(-1)![0].options;
   const header = render(options.headerLeft());
-  fireEvent(header.getByTestId('holes-back-button'), 'click');
+  fireEvent(header.getByTestId('header-back-button'), 'click');
 }
 
 function activeHolePath() {
@@ -190,19 +190,45 @@ describe('HoleLinesScreen', () => {
     expect(screen.getByTestId('mapped-count').props.children).toContain('1 of 2');
   });
 
-  it('saves every hole and goes back', async () => {
+  it('saves the work and moves on to the next hole', async () => {
     render(<HoleLinesScreen />);
     await waitFor(() => expect(screen.getByTestId('hole-editor-mock')).toBeTruthy());
     tapMap(TEE);
     tapMap(GREEN);
 
-    fireEvent.press(screen.getByTestId('save-lines-button'));
+    fireEvent.press(screen.getByTestId('next-hole-button'));
 
     await waitFor(() => expect(saveHoleGeometry).toHaveBeenCalled());
     expect(saveHoleGeometry).toHaveBeenCalledWith([
       { hole_id: 'h1', path: [[64.15, -21.765], [64.152, -21.76]] },
       { hole_id: 'h2', path: [] },
     ]);
+    // Moves on rather than leaving: tracing a course is one pass through it.
+    await waitFor(() => expect(editorProps().activeHoleNumber).toBe(2));
+    expect(back).not.toHaveBeenCalled();
+  });
+
+  it('reads Next until the last hole, where it finishes', async () => {
+    render(<HoleLinesScreen />);
+    await waitFor(() => expect(screen.getByTestId('hole-editor-mock')).toBeTruthy());
+    expect(screen.getByTestId('next-hole-button').props.children).toBeTruthy();
+    expect(screen.getByText('Next hole')).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId('hole-tab-2'));
+
+    expect(screen.getByText('Done')).toBeTruthy();
+  });
+
+  it('saves and leaves from the last hole', async () => {
+    render(<HoleLinesScreen />);
+    await waitFor(() => expect(screen.getByTestId('hole-editor-mock')).toBeTruthy());
+    fireEvent.press(screen.getByTestId('hole-tab-2'));
+    tapMap(TEE);
+    tapMap(GREEN);
+
+    fireEvent.press(screen.getByTestId('next-hole-button'));
+
+    await waitFor(() => expect(saveHoleGeometry).toHaveBeenCalled());
     await waitFor(() => expect(back).toHaveBeenCalled());
   });
 
@@ -213,7 +239,7 @@ describe('HoleLinesScreen', () => {
     tapMap(TEE);
     tapMap(GREEN);
 
-    fireEvent.press(screen.getByTestId('save-lines-button'));
+    fireEvent.press(screen.getByTestId('next-hole-button'));
 
     await waitFor(() => expect(screen.getByText('permission denied')).toBeTruthy());
     expect(back).not.toHaveBeenCalled();

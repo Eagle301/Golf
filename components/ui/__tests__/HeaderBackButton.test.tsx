@@ -44,3 +44,17 @@ describe('HeaderBackButton', () => {
     expect(screen.getByTestId('header-back-button')).toBeTruthy();
   });
 });
+
+describe('HeaderBackButton with its own handler', () => {
+  it('calls the handler instead of navigating, so a screen can intercept the back press', () => {
+    const router = mockRouter(true);
+    const onPress = jest.fn();
+    render(<HeaderBackButton fallback="/courses" onPress={onPress} />);
+
+    fireEvent.press(screen.getByTestId('header-back-button'));
+
+    expect(onPress).toHaveBeenCalledTimes(1);
+    expect(router.back).not.toHaveBeenCalled();
+    expect(router.replace).not.toHaveBeenCalled();
+  });
+});

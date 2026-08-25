@@ -7,19 +7,28 @@ interface HeaderBackButtonProps {
    * link lands on a screen with an empty stack, and the default header back
    * button silently disappears in that case. */
   fallback: Href;
+  /** Handle the press instead of navigating - for a screen that needs to ask
+   * about unsaved work first. It owns the navigation from there. */
+  onPress?: () => void;
 }
 
 /**
  * Header back button that's always rendered, unlike the stack's default one.
  * Pass as `headerLeft` in a screen's `Stack.Screen` options.
  */
-export function HeaderBackButton({ fallback }: HeaderBackButtonProps) {
+export function HeaderBackButton({ fallback, onPress }: HeaderBackButtonProps) {
   const router = useRouter();
 
   return (
     <Pressable
       testID="header-back-button"
-      onPress={() => (router.canGoBack() ? router.back() : router.replace(fallback))}
+      onPress={() => {
+        if (onPress) {
+          onPress();
+          return;
+        }
+        return router.canGoBack() ? router.back() : router.replace(fallback);
+      }}
       className="ml-2"
       hitSlop={8}
     >
